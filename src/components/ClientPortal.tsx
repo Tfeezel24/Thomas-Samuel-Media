@@ -286,19 +286,24 @@ export function ClientPortal({ setView }: { setView: (v: View) => void }) {
                 {/* Invoice Modal */}
                 <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
                     <DialogContent className="max-w-2xl">
-                        <DialogHeader>
+                        <DialogHeader className="print:hidden">
                             <DialogTitle>Invoice Details</DialogTitle>
                         </DialogHeader>
                         {selectedInvoice && (
-                            <div className="space-y-6">
-                                <div className="flex justify-between border-b pb-4">
-                                    <div>
-                                        <h3 className="font-bold text-lg">Invoice #{selectedInvoice.invoiceNumber}</h3>
-                                        <p className="text-muted-foreground">Issued to: {user.profile?.firstName} {user.profile?.lastName}</p>
+                            <div className="space-y-6 print:p-8">
+                                <div className="flex justify-between items-start border-b pb-6 mb-4">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-4">
+                                            <img src="/logo-color.svg" alt="Real Luxe Studios Logo" className="h-12 w-auto object-contain" />
+                                            <h2 className="font-bold text-xl leading-none uppercase tracking-wider text-[#8f5e25]">Real Luxe Studios</h2>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground whitespace-nowrap">Professional Software & Photography</p>
                                     </div>
                                     <div className="text-right">
+                                        <h3 className="font-bold text-xl">Invoice #{selectedInvoice.invoiceNumber}</h3>
+                                        <p className="text-muted-foreground mt-1">Issued to: {user.profile?.firstName} {user.profile?.lastName}</p>
                                         <p className="text-muted-foreground">Due Date: {formatDate(selectedInvoice.dueDate)}</p>
-                                        <Badge>{selectedInvoice.status}</Badge>
+                                        <div className="mt-2"><Badge className="print:hidden">{selectedInvoice.status}</Badge></div>
                                     </div>
                                 </div>
 
@@ -337,7 +342,7 @@ export function ClientPortal({ setView }: { setView: (v: View) => void }) {
                                 </div>
                             </div>
                         )}
-                        <DialogFooter>
+                        <DialogFooter className="print:hidden">
                             <Button variant="outline" onClick={() => setSelectedInvoice(null)}>Close</Button>
                             <Button onClick={() => window.print()}>Print / Save as PDF</Button>
                         </DialogFooter>

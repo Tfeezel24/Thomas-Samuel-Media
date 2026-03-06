@@ -235,7 +235,7 @@ export const bookingsService = {
     async create(booking: Omit<Booking, "id" | "createdAt">): Promise<string> {
         const ref = await addDoc(collection(db, "bookings"), {
             ...booking,
-            status: 'pending', // Enforce pending status for admin approval
+            status: booking.status || 'pending', // Use provided status or default to pending
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
@@ -254,6 +254,10 @@ export const bookingsService = {
             ...data,
             updatedAt: serverTimestamp(),
         });
+    },
+
+    async delete(id: string): Promise<void> {
+        await deleteDoc(doc(db, "bookings", id));
     },
 };
 
@@ -365,6 +369,10 @@ export const invoicesService = {
 
     async updateStatus(id: string, status: string): Promise<void> {
         await updateDoc(doc(db, "invoices", id), { status });
+    },
+
+    async delete(id: string): Promise<void> {
+        await deleteDoc(doc(db, "invoices", id));
     },
 };
 

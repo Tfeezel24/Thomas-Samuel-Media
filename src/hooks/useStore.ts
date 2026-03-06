@@ -93,6 +93,7 @@ interface DataState {
   updateProjectStatus: (id: string, status: string) => void;
   updateInvoiceStatus: (id: string, status: string) => void;
   seedDatabase: () => Promise<void>;
+  adminDeleteBooking: (id: string) => Promise<void>;
 
   // CRUD for admin
   adminCreateService: (service: Omit<Service, 'id'>) => Promise<void>;
@@ -126,6 +127,7 @@ interface DataState {
   adminDeleteProject: (id: string) => Promise<void>;
   adminCreateInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt'>) => Promise<void>;
   adminUpdateInvoice: (id: string, data: Partial<Invoice>) => Promise<void>;
+  adminDeleteInvoice: (id: string) => Promise<void>;
 }
 
 // Combined Store
@@ -364,6 +366,19 @@ export const useStore = create<AppState>()(
         } catch (error) {
           console.error('Failed to update booking:', error);
           get().showToast('Failed to update booking', 'error');
+        }
+      },
+
+      adminDeleteBooking: async (id: string) => {
+        try {
+          await bookingsService.delete(id);
+          set(state => ({
+            allBookings: state.allBookings.filter(b => b.id !== id)
+          }));
+          get().showToast('Booking deleted successfully', 'success');
+        } catch (error) {
+          console.error('Failed to delete booking:', error);
+          get().showToast('Failed to delete booking', 'error');
         }
       },
 
@@ -695,6 +710,17 @@ export const useStore = create<AppState>()(
           console.error('Update invoice failed:', error);
           get().showToast('Failed to update invoice', 'error');
         }
+      },
+
+      adminDeleteInvoice: async (id) => {
+        try {
+          await invoicesService.delete(id);
+          set(s => ({ allInvoices: s.allInvoices.filter(i => i.id !== id) }));
+          get().showToast('Invoice deleted', 'success');
+        } catch (error) {
+          console.error('Delete invoice failed:', error);
+          get().showToast('Failed to delete invoice', 'error');
+        }
       }
     }),
     {
@@ -759,6 +785,7 @@ export const useAdmin = () => {
     carouselVideos,
     contactMessages,
     updateBookingStatus,
+    adminDeleteBooking,
     updateProjectStatus,
     updateInvoiceStatus,
     loadAdminData,
@@ -788,7 +815,8 @@ export const useAdmin = () => {
     adminUpdateProject,
     adminDeleteProject,
     adminCreateInvoice,
-    adminUpdateInvoice
+    adminUpdateInvoice,
+    adminDeleteInvoice
   } = useStore();
 
   return {
@@ -805,6 +833,7 @@ export const useAdmin = () => {
     carouselVideos,
     contactMessages,
     updateBookingStatus,
+    adminDeleteBooking,
     updateProjectStatus,
     updateInvoiceStatus,
     loadAdminData,
@@ -832,6 +861,7 @@ export const useAdmin = () => {
     adminUpdateProject,
     adminDeleteProject,
     adminCreateInvoice,
-    adminUpdateInvoice
+    adminUpdateInvoice,
+    adminDeleteInvoice
   };
 };

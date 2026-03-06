@@ -49,14 +49,14 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
     const {
         services, addOns, clients, allBookings, allInvoices, allProjects, allPayments,
         testimonials, portfolioItems, portfolioCategories, carouselVideos, contactMessages,
-        updateBookingStatus, adminCreateService, adminUpdateService, adminDeleteService,
+        updateBookingStatus, adminDeleteBooking, adminCreateService, adminUpdateService, adminDeleteService,
         adminCreateAddOn, adminUpdateAddOn, adminDeleteAddOn,
         adminCreatePortfolioItem, adminUpdatePortfolioItem, adminDeletePortfolioItem,
         adminSetPortfolioCategories, adminDeletePortfolioCategory,
         adminCreateCarouselVideo, adminUpdateCarouselVideo, adminDeleteCarouselVideo,
         adminMarkMessageRead, adminMarkMessageUnread, adminDeleteMessage, loadAdminData,
         adminUpdateTestimonial, adminDeleteTestimonial,
-        adminCreateProject, adminUpdateProject, adminDeleteProject, adminCreateInvoice, adminUpdateInvoice
+        adminCreateProject, adminUpdateProject, adminDeleteProject, adminCreateInvoice, adminUpdateInvoice, adminDeleteInvoice
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('overview');
@@ -200,7 +200,7 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
 
                     {/* ═══════ INVOICES TAB ═══════ */}
                     <TabsContent value="invoices">
-                        <InvoicesTab invoices={allInvoices} clients={clients} onCreate={adminCreateInvoice} onUpdate={adminUpdateInvoice} />
+                        <InvoicesTab invoices={allInvoices} clients={clients} onCreate={adminCreateInvoice} onUpdate={adminUpdateInvoice} onDelete={adminDeleteInvoice} />
                     </TabsContent>
 
                     {/* ═══════ TRANSACTIONS TAB ═══════ */}
@@ -236,17 +236,32 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                                             <tr key={b.id} className="border-b"><td className="py-3 px-4">{b.clientName}</td><td className="py-3 px-4">{b.serviceName}</td><td className="py-3 px-4">{b.dateTime?.start instanceof Date ? formatDate(b.dateTime.start) : '—'}</td><td className="py-3 px-4">{formatPrice(b.pricing?.total || 0)}</td>
                                                 <td className="py-3 px-4"><Badge variant={b.status === 'confirmed' ? 'default' : 'secondary'}>{b.status}</Badge></td>
                                                 <td className="py-3 px-4">
-                                                    <select
-                                                        className="text-sm border rounded px-2 py-1 bg-background"
-                                                        value={b.status}
-                                                        onChange={e => updateBookingStatus(b.id, e.target.value)}
-                                                    >
-                                                        <option value="pending">Pending Approval</option>
-                                                        <option value="pending_payment">Pending Payment</option>
-                                                        <option value="confirmed">Confirmed</option>
-                                                        <option value="completed">Completed</option>
-                                                        <option value="cancelled">Cancelled</option>
-                                                    </select>
+                                                    <div className="flex items-center gap-2">
+                                                        <select
+                                                            className="text-sm border rounded px-2 py-1 bg-background"
+                                                            value={b.status}
+                                                            onChange={e => updateBookingStatus(b.id, e.target.value)}
+                                                        >
+                                                            <option value="pending">Pending Approval</option>
+                                                            <option value="pending_payment">Pending Payment</option>
+                                                            <option value="confirmed">Confirmed</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                                            onClick={async () => {
+                                                                if (window.confirm('Are you sure you want to permanently delete this booking?')) {
+                                                                    await adminDeleteBooking(b.id);
+                                                                }
+                                                            }}
+                                                            title="Delete Booking"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

@@ -172,11 +172,12 @@ export function ProjectsTab({ projects, clients, onCreate, onUpdate, onDelete }:
     );
 }
 
-export function InvoicesTab({ invoices, clients, onCreate, onUpdate }: {
+export function InvoicesTab({ invoices, clients, onCreate, onUpdate, onDelete }: {
     invoices: Invoice[];
     clients: Client[];
     onCreate: (i: Omit<Invoice, 'id' | 'createdAt'>) => Promise<void>;
     onUpdate: (id: string, data: Partial<Invoice>) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
 }) {
     const [showForm, setShowForm] = useState(false);
     const [editItem, setEditItem] = useState<Invoice | null>(null);
@@ -252,7 +253,10 @@ export function InvoicesTab({ invoices, clients, onCreate, onUpdate }: {
                                     <td className="py-2">{formatPrice(inv.total)}</td>
                                     <td className="py-2"><Badge variant={inv.status === 'paid' ? 'default' : 'secondary'}>{inv.status}</Badge></td>
                                     <td className="py-2">
-                                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(inv); setForm({ ...inv, dueDate: new Date(inv.dueDate).toISOString().split('T')[0] }); setShowForm(true); }}>Edit</Button>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => { setEditItem(inv); setForm({ ...inv, dueDate: new Date(inv.dueDate).toISOString().split('T')[0] }); setShowForm(true); }}>Edit</Button>
+                                            <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete invoice?')) onDelete(inv.id); }} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20" title="Delete Invoice"><div className="text-red-500"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg></div></Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
