@@ -369,6 +369,8 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   <img
                     src={service.image}
                     alt={service.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
@@ -447,6 +449,8 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   <img
                     src={item.thumbnail || item.image}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 )}
@@ -688,8 +692,9 @@ function PortfolioSection() {
                   <img
                     src={item.image}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Gradient at the top for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -844,6 +849,8 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
                   <img
                     src={service.image}
                     alt={service.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -1252,6 +1259,8 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                     <img
                       src={service.image}
                       alt={service.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-20 h-20 object-cover rounded-lg"
                     />
                     <div className="flex-1">
@@ -1801,6 +1810,8 @@ function AboutSection() {
                     key={idx}
                     src={src}
                     alt={`Behind the scenes ${idx + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
                     style={{ opacity: idx === currentImageIndex ? 1 : 0 }}
                   />
@@ -1891,6 +1902,8 @@ function AboutSection() {
                 <img
                   src={item.image}
                   alt={item.title || "Behind the scenes"}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>

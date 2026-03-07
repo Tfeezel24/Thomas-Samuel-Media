@@ -526,7 +526,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
                                             onMouseOut={e => { e.currentTarget.pause(); }}
                                         />
                                     ) : (
-                                        <img src={item.thumbnail || item.image} alt={item.title} className="w-full h-full object-cover" />
+                                        <img src={item.thumbnail || item.image} alt={item.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     )}
                                     {item.featured && <Badge className="absolute top-2 left-2 bg-[#cbb26a]">Featured</Badge>}
                                     {item.videoUrl && <Badge className="absolute top-2 right-2" variant="secondary"><Video className="w-3 h-3 mr-1" />Video</Badge>}
@@ -764,7 +764,7 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
                             {services.map(s => (
                                 <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg hover:shadow-sm transition-shadow gap-4">
                                     <div className="flex items-center gap-4">
-                                        {s.image && <img src={s.image} alt={s.name} className="w-16 h-12 object-cover rounded" />}
+                                        {s.image && <img src={s.image} alt={s.name} loading="lazy" decoding="async" className="w-16 h-12 object-cover rounded" />}
                                         <div>
                                             <p className="font-medium">{s.name}</p>
                                             <p className="text-sm text-muted-foreground">{s.category} • {s.duration}min • {formatPrice(s.basePrice)}</p>
