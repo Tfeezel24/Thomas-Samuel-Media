@@ -15,6 +15,15 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 
 const db = admin.firestore();
 
+// ─── Google Calendar Integration ────────────────────────────────────────────
+const {
+    createCalendarEvent,
+    updateCalendarEvent,
+    deleteCalendarEvent,
+    checkCalendarAvailability,
+    getEventsForDate,
+} = require("./calendarService");
+
 const SERVICE_ACCOUNT = "studio-booking-system-cc931@appspot.gserviceaccount.com";
 
 // ─── Lazy Stripe Init ────────────────────────────────────────────────────────
@@ -446,11 +455,24 @@ async function handleChargeRefunded(event) {
     // Update Booking payment status
     if (bookingId && bookingId !== '') {
         try {
+            const bookingSnap = await db.collection('bookings').doc(bookingId).get();
+            const bookingData = bookingSnap.exists ? bookingSnap.data() : {};
+
             await db.collection('bookings').doc(bookingId).update({
                 'payment.status': refundedFull ? 'refunded' : 'deposit_paid',
                 status: refundedFull ? 'cancelled' : undefined,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+
+            // Delete Google Calendar event if booking is fully cancelled
+            if (refundedFull && bookingData.calendarEventId) {
+                try {
+                    await deleteCalendarEvent(bookingData.calendarEventId, bookingId);
+                    await db.collection('bookings').doc(bookingId).update({ calendarEventId: admin.firestore.FieldValue.delete() });
+                } catch (calErr) {
+                    console.warn(`⚠️ Failed to delete calendar event for booking ${bookingId}:`, calErr.message);
+                }
+            }
 
             // If client exists, reverse the revenue
             if (clientId && clientId !== '' && refundedAmount > 0) {
@@ -656,6 +678,16 @@ async function updateBookingOnPayment(bookingId, paymentIntent, paymentOption) {
         });
 
         console.log(`Booking ${bookingId} confirmed, payment status=${paymentStatus}`);
+
+        // ── Create Google Calendar Event ─────────────────────────────────────
+        try {
+            const calendarEventId = await createCalendarEvent(bookingData, bookingId);
+            await bookingRef.update({ calendarEventId });
+            console.log(`📅 Calendar event ${calendarEventId} created for booking ${bookingId}`);
+        } catch (calErr) {
+            // Don't fail the booking if calendar sync fails
+            console.warn(`⚠️ Calendar sync failed for booking ${bookingId}:`, calErr.message);
+        }
 
         // Automatically create a Project for this booking if it doesn't exist
         const projectsSnap = await db.collection('projects').where('bookingId', '==', bookingId).get();
@@ -870,5 +902,134 @@ exports.manageAdmin = onCall({
         if (error instanceof HttpsError) throw error;
         console.error('manageAdmin error:', error);
         throw new HttpsError('internal', error.message || 'Operation failed.');
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ██  GOOGLE CALENDAR INTEGRATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── Check Calendar Availability for a Date ─────────────────────────────────
+// Called by the frontend when a user selects a date on the booking form.
+// Returns busy time slots from BOTH Firestore bookings AND Google Calendar.
+exports.checkAvailability = onCall({
+    cors: true,
+    serviceAccount: SERVICE_ACCOUNT,
+    region: "us-central1",
+    maxInstances: 10,
+}, async (request) => {
+    const { date } = request.data;
+
+    if (!date) {
+        throw new HttpsError('invalid-argument', 'Date is required.');
+    }
+
+    const targetDate = new Date(date);
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    try {
+        // 1. Get existing Firestore bookings for this date
+        const bookingsSnap = await db.collection('bookings')
+            .where('dateTime.start', '>=', admin.firestore.Timestamp.fromDate(dayStart))
+            .where('dateTime.start', '<=', admin.firestore.Timestamp.fromDate(dayEnd))
+            .get();
+
+        const firestoreBookings = bookingsSnap.docs
+            .filter(d => d.data().status !== 'cancelled')
+            .map(d => {
+                const data = d.data();
+                return {
+                    start: data.dateTime.start.toDate().toISOString(),
+                    end: data.dateTime.end.toDate().toISOString(),
+                    source: 'website',
+                    summary: data.serviceName || 'Booking',
+                };
+            });
+
+        // 2. Get Google Calendar events for this date
+        let calendarEvents = [];
+        try {
+            const gcalEvents = await getEventsForDate(targetDate);
+            calendarEvents = gcalEvents
+                .filter(e => !e.firestoreBookingId) // Exclude events already from our bookings
+                .map(e => ({
+                    start: e.start.toISOString(),
+                    end: e.end.toISOString(),
+                    source: 'google_calendar',
+                    summary: 'Busy', // Don't expose external event details
+                }));
+        } catch (calErr) {
+            console.warn('Could not fetch Google Calendar events:', calErr.message);
+            // Continue with just Firestore data
+        }
+
+        // 3. Merge and return all busy slots
+        const allBusySlots = [...firestoreBookings, ...calendarEvents];
+
+        return {
+            success: true,
+            date: targetDate.toISOString().split('T')[0],
+            busySlots: allBusySlots,
+            totalSlots: allBusySlots.length,
+        };
+
+    } catch (err) {
+        console.error('checkAvailability error:', err);
+        throw new HttpsError('internal', 'Failed to check availability.');
+    }
+});
+
+// ─── Sync Existing Booking to Google Calendar (Admin) ────────────────────────
+// Allows admin to manually sync a booking that wasn't auto-synced.
+exports.syncBookingToCalendar = onCall({
+    cors: true,
+    serviceAccount: SERVICE_ACCOUNT,
+    region: "us-central1",
+    maxInstances: 5,
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'You must be logged in.');
+    }
+
+    // Check if user is admin
+    const userSnap = await db.collection('users').doc(request.auth.uid).get();
+    if (!userSnap.exists || (userSnap.data().role !== 'admin' && !userSnap.data().isSuperAdmin)) {
+        throw new HttpsError('permission-denied', 'Only admins can sync bookings.');
+    }
+
+    const { bookingId } = request.data;
+    if (!bookingId) {
+        throw new HttpsError('invalid-argument', 'bookingId is required.');
+    }
+
+    try {
+        const bookingRef = db.collection('bookings').doc(bookingId);
+        const bookingSnap = await bookingRef.get();
+
+        if (!bookingSnap.exists) {
+            throw new HttpsError('not-found', 'Booking not found.');
+        }
+
+        const bookingData = bookingSnap.data();
+
+        // If already synced, update instead of create
+        if (bookingData.calendarEventId) {
+            await updateCalendarEvent(bookingData.calendarEventId, bookingData, bookingId);
+            return { success: true, message: 'Calendar event updated.', eventId: bookingData.calendarEventId };
+        }
+
+        // Create new calendar event
+        const calendarEventId = await createCalendarEvent(bookingData, bookingId);
+        await bookingRef.update({ calendarEventId });
+
+        return { success: true, message: 'Calendar event created.', eventId: calendarEventId };
+
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        console.error('syncBookingToCalendar error:', err);
+        throw new HttpsError('internal', 'Failed to sync booking to calendar.');
     }
 });

@@ -18,7 +18,8 @@
         "dotenv": "^16.4.5",
         "firebase-admin": "^13.6.1",
         "firebase-functions": "^7.0.5",
-        "stripe": "^14.19.0"
+        "stripe": "^14.19.0",
+        "googleapis": "^144.0.0"
     },
     "devDependencies": {
         "firebase-functions-test": "^3.1.0"
