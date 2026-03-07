@@ -166,13 +166,15 @@ exports.handleStripeWebhook = onRequest({
 
     let event;
     try {
-        if (endpointSecret && sig) {
-            event = getStripe().webhooks.constructEvent(req.rawBody, sig, endpointSecret);
-        } else {
-            // ⚠️ TEST MODE ONLY – remove in production once webhook secret is set
-            console.warn("⚠️  No STRIPE_WEBHOOK_SECRET — skipping signature check (TEST MODE).");
-            event = req.body;
+        if (!endpointSecret) {
+            console.error("STRIPE_WEBHOOK_SECRET is not configured.");
+            return res.status(500).send("Webhook secret not configured.");
         }
+        if (!sig) {
+            console.error("Missing stripe-signature header.");
+            return res.status(400).send("Missing stripe-signature header.");
+        }
+        event = getStripe().webhooks.constructEvent(req.rawBody, sig, endpointSecret);
     } catch (err) {
         console.error(`Webhook signature verification failed: ${err.message}`);
         return res.status(400).send(`Webhook Error: ${err.message}`);
