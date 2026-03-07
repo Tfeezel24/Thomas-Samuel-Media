@@ -37,6 +37,51 @@ service cloud.firestore {
     }
 
     // ============================================
+    // SERVICES COLLECTION (public read, admin write)
+    // ============================================
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // ADDONS COLLECTION (public read, admin write)
+    // ============================================
+    match /addons/{addonId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // INVOICES COLLECTION
+    // ============================================
+    match /invoices/{invoiceId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.clientEmail == request.auth.token.email ||
+        isAdmin()
+      );
+      allow create: if request.auth != null || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ============================================
+    // CLIENTS COLLECTION
+    // ============================================
+    match /clients/{clientId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
     // PORTFOLIO COLLECTION (public read, admin write)
     // ============================================
     match /portfolio/{itemId} {
@@ -98,6 +143,14 @@ service cloud.firestore {
     // AVAILABILITY / TIME SLOTS (public read, admin write)
     // ============================================
     match /availability/{slotId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // CAROUSEL VIDEOS COLLECTION (public read, admin write)
+    // ============================================
+    match /carouselVideos/{videoId} {
       allow read: if true;
       allow write: if isAdmin();
     }
