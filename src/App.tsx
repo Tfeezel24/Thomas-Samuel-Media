@@ -1364,6 +1364,7 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                   {generateTimeSlots(selectedDate).map((slot, i) => {
                     const isBooked = existingBookings.some(b =>
                       b.status !== 'cancelled' &&
+                      b.status !== 'pending_payment' &&
                       slot.start < b.dateTime.end &&
                       slot.end > b.dateTime.start
                     );
