@@ -3,63 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ============================================
-    // SERVICES / PACKAGES COLLECTION (public read, admin write)
-    // ============================================
-    match /services/{serviceId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
-    // ADDONS COLLECTION (public read, admin write)
-    // ============================================
-    match /addons/{addonId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
-    // CAROUSEL VIDEOS COLLECTION (public read, admin write)
-    // ============================================
-    match /carouselVideos/{videoId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
-    // PORTFOLIO COLLECTION (public read, admin write)
-    // ============================================
-    match /portfolio/{itemId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
-    // TESTIMONIALS COLLECTION (public read, authenticated create, admin manage)
-    // ============================================
-    match /testimonials/{testimonialId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if isAdmin();
-    }
-
-    // ============================================
-    // AVAILABILITY / TIME SLOTS (public read, admin write)
-    // ============================================
-    match /availability/{slotId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
-    // SETTINGS / CONFIG (public read, admin write)
-    // ============================================
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ============================================
     // BOOKINGS COLLECTION
     // ============================================
     match /bookings/{bookingId} {
@@ -86,37 +29,44 @@ service cloud.firestore {
     }
 
     // ============================================
-    // CLIENTS COLLECTION
+    // PACKAGES COLLECTION (public read, admin write)
     // ============================================
-    match /clients/{clientId} {
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.email == request.auth.token.email ||
-        isAdmin()
-      );
+    match /packages/{packageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // PORTFOLIO COLLECTION (public read, admin write)
+    // ============================================
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // TESTIMONIALS COLLECTION (public read, admin write)
+    // ============================================
+    match /testimonials/{testimonialId} {
+      allow read: if true;
       allow create: if request.auth != null;
       allow update, delete: if isAdmin();
     }
 
     // ============================================
-    // CONTACT MESSAGES (anyone can create, admin reads)
+    // SETTINGS / CONFIG (admin only)
     // ============================================
-    match /contactMessages/{messageId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // ============================================
-    // INVOICES COLLECTION
+    // CONTACT MESSAGES (anyone can create, admin reads)
     // ============================================
-    match /invoices/{invoiceId} {
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.clientEmail == request.auth.token.email ||
-        isAdmin()
-      );
-      allow create: if request.auth != null || isAdmin();
-      allow update, delete: if isAdmin();
+    match /contacts/{contactId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
     // ============================================
@@ -145,9 +95,9 @@ service cloud.firestore {
     }
 
     // ============================================
-    // PACKAGES COLLECTION (legacy, public read, admin write)
+    // AVAILABILITY / TIME SLOTS (public read, admin write)
     // ============================================
-    match /packages/{packageId} {
+    match /availability/{slotId} {
       allow read: if true;
       allow write: if isAdmin();
     }

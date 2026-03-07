@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Camera,
   Calendar,
@@ -109,7 +109,6 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
           <button
             onClick={() => setView('home')}
             className="flex items-center"
-            aria-label="Real Luxe Studios - Go to homepage"
           >
             <img
               src="/logo-color.svg"
@@ -214,7 +213,6 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
           <button
             className="md:hidden p-2 text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -2233,7 +2231,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><button onClick={() => setView('contact')} className="hover:text-white">Contact</button></li>
               <li><button onClick={() => setView('portal')} className="hover:text-white">Client Portal</button></li>
-              {user?.role === 'admin' && (<li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>)}
+              <li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>
               <li><button className="hover:text-white">FAQ</button></li>
               <li><button className="hover:text-white">Privacy Policy</button></li>
             </ul>
@@ -2268,47 +2266,9 @@ function Footer({ setView }: { setView: (v: View) => void }) {
 }
 
 // Main App Component
-// ─── Helper: Map URL paths to View names ─────────────────────────────────────
-const validViews: View[] = ['home', 'portfolio', 'services', 'booking', 'about', 'contact', 'portal', 'admin', 'login', 'settings'];
-
-function pathToView(pathname: string): View {
-  const segment = pathname.replace(/^\//, '').split('/')[0].toLowerCase();
-  if (segment && validViews.includes(segment as View)) return segment as View;
-  return 'home';
-}
-
-function viewToPath(view: View): string {
-  return view === 'home' ? '/' : `/${view}`;
-}
-
 function App() {
-  const [currentView, setCurrentView] = useState<View>(() => pathToView(window.location.pathname));
+  const [currentView, setCurrentView] = useState<View>('home');
   const { setUser, loadPublicData, loadAdminData, dataLoaded, authLoading } = useStore();
-  const isPopRef = useRef(false);
-
-  // Wrap setCurrentView to also push browser history
-  const setView = useCallback((view: View) => {
-    setCurrentView(view);
-    if (!isPopRef.current) {
-      window.history.pushState({ view }, '', viewToPath(view));
-    }
-    isPopRef.current = false;
-  }, []);
-
-  // Listen for browser back/forward buttons
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      const view = event.state?.view || pathToView(window.location.pathname);
-      isPopRef.current = true;
-      setView(view);
-    };
-    window.addEventListener('popstate', handlePopState);
-
-    // Replace the initial history entry so it has state too
-    window.history.replaceState({ view: currentView }, '', viewToPath(currentView));
-
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Firebase auth listener — runs once on mount
   useEffect(() => {
@@ -2354,27 +2314,27 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation currentView={currentView} setView={setView} />
+      <Navigation currentView={currentView} setView={setCurrentView} />
       <main>
         {/* Persist HomeSection to keep video loaded / buffering */}
         <div style={{ display: currentView === 'home' ? 'block' : 'none' }}>
-          <HomeSection setView={setView} />
+          <HomeSection setView={setCurrentView} />
         </div>
 
         {/* Render other views conditionally */}
         {currentView === 'portfolio' && <PortfolioSection />}
-        {currentView === 'services' && <ServicesSection setView={setView} />}
-        {currentView === 'booking' && <BookingSection setView={setView} />}
+        {currentView === 'services' && <ServicesSection setView={setCurrentView} />}
+        {currentView === 'booking' && <BookingSection setView={setCurrentView} />}
         {currentView === 'about' && <AboutSection />}
         {currentView === 'contact' && <ContactSection />}
-        {currentView === 'login' && <LoginSection setView={setView} />}
-        {currentView === 'portal' && <ClientPortal setView={setView} />}
-        {currentView === 'admin' && <AdminDashboard setView={setView} />}
+        {currentView === 'login' && <LoginSection setView={setCurrentView} />}
+        {currentView === 'portal' && <ClientPortal setView={setCurrentView} />}
+        {currentView === 'admin' && <AdminDashboard setView={setCurrentView} />}
         {currentView === 'settings' && <SettingsPage />}
       </main>
 
       {currentView !== 'portal' && currentView !== 'admin' && currentView !== 'login' && (
-        <Footer setView={setView} />
+        <Footer setView={setCurrentView} />
       )}
       <Toast />
     </div>
