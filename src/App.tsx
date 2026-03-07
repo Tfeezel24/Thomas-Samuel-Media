@@ -42,6 +42,8 @@ import { Progress } from '@/components/ui/progress';
 import { useStore, useAuth, useBooking } from '@/hooks/useStore';
 import { formatPrice, formatDate, formatTime } from '@/data/mockData';
 import { authService, contactMessagesService, bookingsService } from '@/lib/firebaseService';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { HeroVideo } from '@/components/HeroVideo';
 import { PaymentForm } from '@/components/PaymentForm';
@@ -991,6 +993,8 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
   const [pendingClientId, setPendingClientId] = useState<string | null>(null);
   const { user } = useAuth();
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
+  const [calendarBusySlots, setCalendarBusySlots] = useState<Array<{start: string; end: string; source: string}>>([]);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
   const {
     selectedService,
@@ -1007,9 +1011,26 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
 
   useEffect(() => {
     if (selectedDate) {
+      setIsCheckingAvailability(true);
+      // Check availability from both Firestore AND Google Calendar
+      const checkAvailabilityFunc = httpsCallable(functions, 'checkAvailability');
+      checkAvailabilityFunc({ date: selectedDate.toISOString() })
+        .then((result: any) => {
+          const data = result.data;
+          if (data.success && data.busySlots) {
+            setCalendarBusySlots(data.busySlots);
+          }
+        })
+        .catch((err: any) => {
+          console.warn('Calendar availability check failed, falling back to Firestore only:', err.message);
+        })
+        .finally(() => setIsCheckingAvailability(false));
+
+      // Also get Firestore bookings as fallback
       bookingsService.getByDate(selectedDate).then(setExistingBookings);
     } else {
       setExistingBookings([]);
+      setCalendarBusySlots([]);
     }
   }, [selectedDate]);
 
@@ -1370,13 +1391,28 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
               <div className="bg-card p-6 rounded-lg border">
                 <Label className="mb-4 block">Available Times</Label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {generateTimeSlots(selectedDate).map((slot, i) => {
-                    const isBooked = existingBookings.some(b =>
+                  {isCheckingAvailability ? (
+                    <div className="col-span-full flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#cbb26a] mr-2" />
+                      <span className="text-muted-foreground">Checking availability...</span>
+                    </div>
+                  ) : generateTimeSlots(selectedDate).map((slot, i) => {
+                    // Check Firestore bookings
+                    const isFirestoreBooked = existingBookings.some(b =>
                       b.status !== 'cancelled' &&
                       b.status !== 'pending_payment' &&
                       slot.start < b.dateTime.end &&
                       slot.end > b.dateTime.start
                     );
+
+                    // Check Google Calendar busy slots
+                    const isCalendarBusy = calendarBusySlots.some(busy => {
+                      const busyStart = new Date(busy.start);
+                      const busyEnd = new Date(busy.end);
+                      return slot.start < busyEnd && slot.end > busyStart;
+                    });
+
+                    const isBooked = isFirestoreBooked || isCalendarBusy;
 
                     return (
                       <button
@@ -1397,7 +1433,7 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                           }`}
                       >
                         {formatTime(slot.start)}
-                        {isBooked && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">Booked</span>}
+                        {isBooked && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{isCalendarBusy && !isFirestoreBooked ? 'Busy' : 'Booked'}</span>}
                       </button>
                     );
                   })}
