@@ -113,8 +113,8 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
             className="flex items-center"
           >
             <img
-              src="/logo-color.svg"
-              alt="Real Luxe Studios"
+              src="/logo-color.png"
+              alt="Thomas Samuel Media"
               className="h-10 w-auto"
             />
           </button>
@@ -2257,8 +2257,8 @@ function Footer({ setView }: { setView: (v: View) => void }) {
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           <div>
             <div className="flex items-center gap-2 font-bold text-xl mb-4 text-[#cbb26a]">
-              <img src="/logo-white.svg" alt="Real Luxe Studios Logo" className="w-8 h-8" />
-              <span>Real Luxe Studios</span>
+              <img src="/logo-white.png" alt="Thomas Samuel Media Logo" className="w-8 h-8" />
+              <span>Thomas Samuel Media</span>
             </div>
             <p className="text-gray-400 text-sm">
               Premium photography and video for real estate, brands, and businesses.
@@ -2302,7 +2302,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
         <Separator className="bg-white/10 mb-8" />
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-          <p>&copy; 2026 Real Luxe Studios. All rights reserved.</p>
+          <p>&copy; 2026 Thomas Samuel Media. All rights reserved.</p>
           <div className="flex gap-4">
             <button className="hover:text-white">Terms of Service</button>
             <button className="hover:text-white">Privacy Policy</button>

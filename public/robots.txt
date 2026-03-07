@@ -1,5 +1,5 @@
-# robots.txt — Real Luxe Studios
-# https://realluxestudios.com/
+# robots.txt — Thomas Samuel Media
+# https://thomassamuelmedia.com/
 
 User-agent: *
 Allow: /
@@ -11,4 +11,4 @@ Disallow: /settings
 Disallow: /login
 
 # Sitemap location
-Sitemap: https://realluxestudios.com/sitemap.xml
+Sitemap: https://thomassamuelmedia.com/sitemap.xml

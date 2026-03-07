@@ -294,8 +294,8 @@ export function ClientPortal({ setView }: { setView: (v: View) => void }) {
                                 <div className="flex justify-between items-start border-b pb-6 mb-4">
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center gap-4">
-                                            <img src="/logo-color.svg" alt="Real Luxe Studios Logo" className="h-12 w-auto object-contain" />
-                                            <h2 className="font-bold text-xl leading-none uppercase tracking-wider text-[#8f5e25]">Real Luxe Studios</h2>
+                                            <img src="/logo-color.png" alt="Thomas Samuel Media Logo" className="h-12 w-auto object-contain" />
+                                            <h2 className="font-bold text-xl leading-none uppercase tracking-wider text-[#8f5e25]">Thomas Samuel Media</h2>
                                         </div>
                                         <p className="text-sm text-muted-foreground whitespace-nowrap">Professional Software & Photography</p>
                                     </div>

@@ -1,5 +1,5 @@
 /**
- * Google Calendar Integration for Real Luxe Studios
+ * Google Calendar Integration for Thomas Samuel Media
  * 
  * Syncs bookings with Google Calendar to prevent double-booking.
  * Uses a service account for server-to-server authentication.
@@ -72,7 +72,7 @@ async function createCalendarEvent(booking, bookingId) {
         extendedProperties: {
             private: {
                 firestoreBookingId: bookingId,
-                source: "realluxestudios",
+                source: "thomassamuelmedia",
             },
         },
     };
@@ -241,7 +241,7 @@ function toISO(value) {
  */
 function buildEventDescription(booking, bookingId) {
     const lines = [
-        `🎬 Real Luxe Studios Booking`,
+        `🎬 Thomas Samuel Media Booking`,
         ``,
         `Client: ${booking.clientName || "N/A"}`,
         `Email: ${booking.clientEmail || "N/A"}`,

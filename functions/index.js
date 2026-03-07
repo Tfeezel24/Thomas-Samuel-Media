@@ -24,7 +24,7 @@ const {
     getEventsForDate,
 } = require("./calendarService");
 
-const SERVICE_ACCOUNT = "studio-booking-system-cc931@appspot.gserviceaccount.com";
+const SERVICE_ACCOUNT = "thomas-samuel-media@appspot.gserviceaccount.com";
 
 // ─── Lazy Stripe Init ────────────────────────────────────────────────────────
 let stripe;

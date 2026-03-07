@@ -108,7 +108,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true ||
-        request.auth.token.email == 'realluxestudios@gmail.com'
+        request.auth.token.email == 'thomassamuelmedia@gmail.com'
       );
     }
   }

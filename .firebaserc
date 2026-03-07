@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "thomas-samuel-media"
+  },
   "targets": {},
   "etags": {}
 }
