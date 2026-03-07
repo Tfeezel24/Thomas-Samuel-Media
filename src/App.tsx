@@ -109,6 +109,7 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
           <button
             onClick={() => setView('home')}
             className="flex items-center"
+            aria-label="Real Luxe Studios - Go to homepage"
           >
             <img
               src="/logo-color.svg"
@@ -213,6 +214,7 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
           <button
             className="md:hidden p-2 text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -2231,7 +2233,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><button onClick={() => setView('contact')} className="hover:text-white">Contact</button></li>
               <li><button onClick={() => setView('portal')} className="hover:text-white">Client Portal</button></li>
-              <li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>
+              {user?.role === 'admin' && (<li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>)}
               <li><button className="hover:text-white">FAQ</button></li>
               <li><button className="hover:text-white">Privacy Policy</button></li>
             </ul>

@@ -20,7 +20,10 @@ export function ClientTestimonialForm({ user }: { user: User }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!content) return;
+        if (!content || content.trim().length < 20) {
+            alert('Please write at least 20 characters for your review.');
+            return;
+        }
 
         setSubmitting(true);
         try {
@@ -125,7 +128,7 @@ export function ClientTestimonialForm({ user }: { user: User }) {
 
                     <Button
                         type="submit"
-                        disabled={submitting || !content}
+                        disabled={submitting || !content || content.trim().length < 20}
                         className="w-full btn-gold text-white font-medium"
                     >
                         {submitting ? (
