@@ -362,6 +362,32 @@ export const useStore = create<AppState>()(
               b.id === id ? { ...b, status: status as any } : b
             )
           }));
+
+          // Automatically create a Project when manually confirmed
+          if (status === 'confirmed') {
+            const booking = get().allBookings.find(b => b.id === id);
+            if (booking) {
+              const projectExists = get().allProjects.some(p => p.bookingId === id);
+              if (!projectExists) {
+                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const randomCode = Math.floor(1000 + Math.random() * 9000);
+
+                await get().adminCreateProject({
+                  projectNumber: `PRJ-${dateStr}-${randomCode}`,
+                  clientId: booking.clientId,
+                  clientName: booking.clientName,
+                  bookingId: id,
+                  name: `${booking.serviceName || 'Project'} @ ${booking.location?.address || 'TBD'}`,
+                  description: booking.notes || '',
+                  status: 'lead',
+                  workflowStage: 1,
+                  deliverables: [],
+                  notes: ''
+                });
+              }
+            }
+          }
+
           get().showToast('Booking status updated', 'success');
         } catch (error) {
           console.error('Failed to update booking:', error);

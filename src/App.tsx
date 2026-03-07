@@ -604,6 +604,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
 function PortfolioSection() {
   const [filter, setFilter] = useState<string>('featured');
   const [visibleCount, setVisibleCount] = useState(12);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { portfolioItems, portfolioCategories } = useStore();
 
   // Format slug label: 'real-estate' → 'Real Estate'
@@ -674,6 +675,11 @@ function PortfolioSection() {
             <div
               key={item.id}
               className="group relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer bg-black/5"
+              onClick={() => {
+                if (!item.videoUrl) {
+                  setSelectedImage(item.image);
+                }
+              }}
             >
               {item.videoUrl ? (
                 <PortfolioVideo item={item} />
@@ -714,6 +720,30 @@ function PortfolioSection() {
           </div>
         )}
       </div>
+
+      {/* Full Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            className="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedImage(null);
+            }}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={selectedImage}
+            alt="Expanded view"
+            className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl animate-in fade-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

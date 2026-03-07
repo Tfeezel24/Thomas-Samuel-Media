@@ -74,14 +74,14 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
 
     // ── Live Metrics computed from real data ──
     const metrics = useMemo(() => {
-        const validBookings = allBookings.filter(b => b.status !== 'cancelled');
+        const validBookings = allBookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
         const totalRevenue = validBookings.reduce((sum, b) => sum + (b.pricing?.total || 0), 0);
-        const totalBookings = allBookings.length;
+        const totalBookings = validBookings.length;
         const pendingInvoices = allInvoices.filter(i => i.status !== 'paid' && i.status !== 'cancelled').length;
         const activeProjects = allProjects.filter(p => p.status !== 'delivered' && p.status !== 'closed').length;
         const avgOrderValue = validBookings.length > 0 ? Math.round(totalRevenue / validBookings.length) : 0;
         const unreadMessages = contactMessages.filter(m => !m.isRead).length;
-        return { totalRevenue, totalBookings, pendingInvoices, activeProjects, avgOrderValue, unreadMessages };
+        return { totalRevenue, totalBookings, pendingInvoices, activeProjects, avgOrderValue, unreadMessages, validBookings };
     }, [allBookings, allInvoices, allProjects, contactMessages]);
 
     if (!user || user.role !== 'admin') {
@@ -158,13 +158,13 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                                 <CardHeader><CardTitle>Recent Bookings</CardTitle></CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {allBookings.slice(0, 5).map((b: Booking) => (
+                                        {metrics.validBookings.slice(0, 5).map((b: Booking) => (
                                             <div key={b.id} className="flex items-center justify-between">
                                                 <div><p className="font-medium">{b.clientName}</p><p className="text-sm text-muted-foreground">{b.serviceName}</p></div>
                                                 <Badge variant={b.status === 'confirmed' ? 'default' : 'secondary'}>{b.status}</Badge>
                                             </div>
                                         ))}
-                                        {allBookings.length === 0 && <p className="text-muted-foreground text-center py-4">No bookings yet</p>}
+                                        {metrics.validBookings.length === 0 && <p className="text-muted-foreground text-center py-4">No real bookings yet</p>}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -428,7 +428,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
 
-    const emptyForm = { title: '', category: categories[0] || 'real-estate', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false };
+    const emptyForm = { title: '', category: categories[0] || 'real-estate', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false, sortOrder: 0 };
     const [form, setForm] = useState(emptyForm);
     const [uploading, setUploading] = useState(false);
 
@@ -449,14 +449,13 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
     const openCreate = () => { setForm({ ...emptyForm, category: categories[0] || '' }); setEditItem(null); setShowForm(true); };
     const openEdit = (item: PortfolioItem) => {
-        setForm({ title: item.title, category: item.category, image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured });
+        setForm({ title: item.title, category: item.category, image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
         setEditItem(item); setShowForm(true);
     };
 
     const handleSave = async () => {
-        if (!form.title) { alert('Title is required'); return; }
         if (!form.image && !form.videoUrl) { alert('Image or Video URL is required'); return; }
-        const data = { ...form, date: new Date() };
+        const data = { ...form, date: new Date(), sortOrder: Number(form.sortOrder) };
         if (editItem) { await onUpdate(editItem.id, data); }
         else { await onCreate(data); }
         setShowForm(false);
@@ -533,8 +532,11 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
                                     {item.videoUrl && <Badge className="absolute top-2 right-2" variant="secondary"><Video className="w-3 h-3 mr-1" />Video</Badge>}
                                 </div>
                                 <div className="p-3">
-                                    <p className="font-medium truncate">{item.title}</p>
-                                    <p className="text-xs text-muted-foreground">{item.category} {item.client ? `• ${item.client}` : ''}</p>
+                                    <p className="font-medium truncate">{item.title || 'Untitled'}</p>
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
+                                        <span>{item.category} {item.client ? `• ${item.client}` : ''}</span>
+                                        <Badge variant="outline" className="text-[10px] leading-none py-0.5">Order: {item.sortOrder ?? '—'}</Badge>
+                                    </div>
                                     <div className="flex gap-1 mt-2">
                                         <Button variant="ghost" size="sm" onClick={() => openEdit(item)}><Edit className="w-3 h-3 mr-1" />Edit</Button>
                                         <Button variant="ghost" size="sm" onClick={() => onDelete(item.id)}><Trash2 className="w-3 h-3 mr-1 text-red-500" />Delete</Button>
@@ -622,7 +624,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
             <Modal open={showForm} onClose={() => setShowForm(false)} title={editItem ? 'Edit Portfolio Item' : 'Add Portfolio Item'}>
                 <div className="space-y-4">
-                    <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Item title" /></div>
+                    <div><Label>Title (Optional)</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Item title" /></div>
                     <div><Label>Category</Label>
                         <select className="w-full border rounded-md px-3 py-2 bg-background" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                             {categories.map(c => <option key={c} value={c}>{formatLabel(c)}</option>)}
@@ -656,9 +658,16 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
                     </div>
                     <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} /></div>
                     <div><Label>Client</Label><Input value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} placeholder="Client name" /></div>
-                    <div className="flex items-center gap-2">
-                        <input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="w-4 h-4" />
-                        <Label>Featured</Label>
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                            <Label>Sort Order</Label>
+                            <Input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: Number(e.target.value) })} placeholder="e.g. 1" />
+                            <p className="text-xs text-muted-foreground mt-1">Lower numbers appear first</p>
+                        </div>
+                        <div className="flex items-center gap-2 pt-6">
+                            <input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="w-4 h-4" />
+                            <Label>Featured</Label>
+                        </div>
                     </div>
                     <Button className="w-full btn-gold text-white" onClick={handleSave}>{editItem ? 'Update Item' : 'Add Item'}</Button>
                 </div>

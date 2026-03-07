@@ -643,6 +643,7 @@ async function updateBookingOnPayment(bookingId, paymentIntent, paymentOption) {
             return;
         }
 
+        const bookingData = bookingSnap.data();
         const paymentStatus = paymentOption === 'deposit' ? 'deposit_paid' : 'paid_in_full';
 
         await bookingRef.update({
@@ -655,6 +656,30 @@ async function updateBookingOnPayment(bookingId, paymentIntent, paymentOption) {
         });
 
         console.log(`Booking ${bookingId} confirmed, payment status=${paymentStatus}`);
+
+        // Automatically create a Project for this booking if it doesn't exist
+        const projectsSnap = await db.collection('projects').where('bookingId', '==', bookingId).get();
+        if (projectsSnap.empty) {
+            const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const randomCode = Math.floor(1000 + Math.random() * 9000);
+            const projectNumber = `PRJ-${dateStr}-${randomCode}`;
+
+            await db.collection('projects').add({
+                projectNumber,
+                clientId: bookingData.clientId || '',
+                clientName: bookingData.clientName || '',
+                bookingId: bookingId,
+                name: `${bookingData.serviceName || 'Project'} @ ${bookingData.location?.address || 'TBD'}`,
+                description: bookingData.notes || '',
+                status: 'lead',
+                workflowStage: 1,
+                deliverables: [],
+                notes: '',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`Auto-created Project ${projectNumber} for Booking ${bookingId}`);
+        }
     } catch (err) {
         console.error(`Error updating booking ${bookingId}:`, err);
     }

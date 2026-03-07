@@ -177,6 +177,7 @@ export interface PortfolioItem {
   client?: string;
   date: Date;
   featured: boolean;
+  sortOrder?: number;
 }
 
 // Testimonial Types

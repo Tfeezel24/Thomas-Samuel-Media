@@ -430,7 +430,8 @@ export const portfolioService = {
         const snap = await getDocs(
             query(collection(db, "portfolio"), orderBy("date", "desc"))
         );
-        return snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
 
     async getFeatured(): Promise<PortfolioItem[]> {
@@ -441,7 +442,8 @@ export const portfolioService = {
                 orderBy("date", "desc")
             )
         );
-        return snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
 
     async create(item: Omit<PortfolioItem, "id">): Promise<string> {
