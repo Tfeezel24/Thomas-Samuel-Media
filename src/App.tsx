@@ -982,7 +982,45 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
 
 // Booking Section - Multi-step booking flow
 function BookingSection({ setView }: { setView: (v: View) => void }) {
-  const [step, setStep] = useState(1);
+  const [step, _setStep] = useState(1);
+  const stepRef = useRef(1);
+  const isPopStepRef = useRef(false);
+
+  // Wrap setStep to push browser history entries for each booking step
+  const setStep = useCallback((newStep: number) => {
+    _setStep(newStep);
+    stepRef.current = newStep;
+    if (!isPopStepRef.current) {
+      window.history.pushState({ view: 'booking', bookingStep: newStep }, '', '/booking');
+    }
+    isPopStepRef.current = false;
+  }, []);
+
+  // Handle browser back/forward within booking steps
+  useEffect(() => {
+    const handleBookingPopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state?.view === 'booking' && typeof state.bookingStep === 'number') {
+        // Going back/forward between booking steps
+        isPopStepRef.current = true;
+        _setStep(state.bookingStep);
+        stepRef.current = state.bookingStep;
+      } else if (stepRef.current > 1) {
+        // User pressed back from step > 1 but no booking state — go to previous step
+        event.preventDefault();
+        const prevStep = stepRef.current - 1;
+        isPopStepRef.current = true;
+        _setStep(prevStep);
+        stepRef.current = prevStep;
+        window.history.pushState({ view: 'booking', bookingStep: prevStep }, '', '/booking');
+      }
+      // If step is 1 and no booking state, let the default popstate handler in App handle it
+    };
+    // Push initial booking step 1 into history
+    window.history.replaceState({ view: 'booking', bookingStep: 1 }, '', '/booking');
+    window.addEventListener('popstate', handleBookingPopState);
+    return () => window.removeEventListener('popstate', handleBookingPopState);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'venmo' | 'zelle'>('stripe');
   const [paymentOption, setPaymentOption] = useState<'full' | 'deposit'>('deposit');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -2334,6 +2372,10 @@ function App() {
   // Listen for browser back/forward buttons
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      // If this is a booking step change, let BookingSection handle it
+      if (event.state?.view === 'booking' && typeof event.state?.bookingStep === 'number') {
+        return;
+      }
       const view = event.state?.view || pathToView(window.location.pathname);
       isPopRef.current = true;
       setView(view);
