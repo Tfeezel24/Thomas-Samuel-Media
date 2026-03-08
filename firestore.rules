@@ -156,12 +156,30 @@ service cloud.firestore {
     }
 
     // ============================================
+    // ACTIVITY LOGS (admin only)
+    // ============================================
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if true;
+    }
+
+    // ============================================
+    // WEBHOOK EVENTS (internal use)
+    // ============================================
+    match /webhookEvents/{eventId} {
+      allow read: if isAdmin();
+      allow create, update: if true;
+    }
+
+    // ============================================
     // ADMIN HELPER FUNCTION
+    // Checks: custom claim, known admin email, OR Firestore user doc role
     // ============================================
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true ||
-        request.auth.token.email == 'thomassamuelmedia@gmail.com'
+        request.auth.token.email == 'thomassamuelmedia@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
   }

@@ -886,6 +886,8 @@ exports.manageAdmin = onCall({
             } catch (e) {
                 throw new HttpsError('not-found', `No user found with email: ${targetEmail}`);
             }
+            // Set custom claim on Firebase Auth token so Firestore rules recognize admin
+            await admin.auth().setCustomUserClaims(authUser.uid, { admin: true });
             await db.collection('users').doc(authUser.uid).set({
                 role: 'admin',
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -902,6 +904,8 @@ exports.manageAdmin = onCall({
             if (targetUid === callerUid) {
                 throw new HttpsError('permission-denied', 'You cannot revoke your own admin access.');
             }
+            // Remove admin custom claim from Firebase Auth token
+            await admin.auth().setCustomUserClaims(targetUid, { admin: false });
             await db.collection('users').doc(targetUid).set({
                 role: 'client',
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
