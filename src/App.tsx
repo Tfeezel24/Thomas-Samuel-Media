@@ -27,7 +27,8 @@ import {
   AlertCircle,
   LayoutDashboard,
   Video,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -314,6 +315,7 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
 function HomeSection({ setView }: { setView: (v: View) => void }) {
   const { services, portfolioItems, testimonials } = useStore();
   const approvedTestimonials = testimonials.filter((t: Testimonial) => t.status === 'approved' || !t.status);
+  const [expandedHomeDesc, setExpandedHomeDesc] = useState<string | null>(null);
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -378,7 +380,19 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 </div>
                 <CardHeader className="pt-4">
                   <CardTitle className="text-lg">{service.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">{service.description}</CardDescription>
+                  <CardDescription
+                    className={`cursor-pointer transition-all ${expandedHomeDesc === service.id ? '' : 'line-clamp-2'}`}
+                    onClick={(e) => { e.stopPropagation(); setExpandedHomeDesc(expandedHomeDesc === service.id ? null : service.id); }}
+                  >
+                    {service.description}
+                  </CardDescription>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExpandedHomeDesc(expandedHomeDesc === service.id ? null : service.id); }}
+                    className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-1 transition-colors"
+                  >
+                    {expandedHomeDesc === service.id ? 'Show less' : 'Read more'}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${expandedHomeDesc === service.id ? 'rotate-180' : ''}`} />
+                  </button>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-baseline gap-2">
@@ -759,6 +773,7 @@ function PortfolioSection() {
 function ServicesSection({ setView }: { setView: (v: View) => void }) {
   const { services, addOns } = useStore();
   const [expandedPricing, setExpandedPricing] = useState<string | null>(null);
+  const [expandedDesc, setExpandedDesc] = useState<string | null>(null);
   // Track selected sqft tier per service: { "pkg-base": "0-2000", "pkg-standard": "2001-3000", ... }
   const [selectedTiers, setSelectedTiers] = useState<Record<string, string>>({});
 
@@ -859,7 +874,19 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
 
                 <CardHeader className="pb-2 pt-4">
                   <CardTitle className="text-lg">{service.name}</CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">{service.description}</CardDescription>
+                  <CardDescription
+                    className={`text-sm leading-relaxed cursor-pointer transition-all ${expandedDesc === service.id ? '' : 'line-clamp-2 md:line-clamp-none'}`}
+                    onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
+                  >
+                    {service.description}
+                  </CardDescription>
+                  <button
+                    onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
+                    className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-1 md:hidden transition-colors"
+                  >
+                    {expandedDesc === service.id ? 'Show less' : 'Read more'}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${expandedDesc === service.id ? 'rotate-180' : ''}`} />
+                  </button>
                 </CardHeader>
                 <CardContent className="flex-1 pt-2">
                   <div className="space-y-4">
@@ -1021,6 +1048,7 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
     window.addEventListener('popstate', handleBookingPopState);
     return () => window.removeEventListener('popstate', handleBookingPopState);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [expandedBookingDesc, setExpandedBookingDesc] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'venmo' | 'zelle'>('stripe');
   const [paymentOption, setPaymentOption] = useState<'full' | 'deposit'>('deposit');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1324,7 +1352,19 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                     />
                     <div className="flex-1">
                       <h3 className="font-semibold">{service.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                      <p
+                        className={`text-sm text-muted-foreground cursor-pointer transition-all ${expandedBookingDesc === service.id ? '' : 'line-clamp-2'}`}
+                        onClick={(e) => { e.stopPropagation(); setExpandedBookingDesc(expandedBookingDesc === service.id ? null : service.id); }}
+                      >
+                        {service.description}
+                      </p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setExpandedBookingDesc(expandedBookingDesc === service.id ? null : service.id); }}
+                        className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-0.5 transition-colors"
+                      >
+                        {expandedBookingDesc === service.id ? 'Show less' : 'Read more'}
+                        <ChevronDown className={`w-3 h-3 transition-transform ${expandedBookingDesc === service.id ? 'rotate-180' : ''}`} />
+                      </button>
                       <div className="flex items-baseline gap-1 mt-2">
                         <span className="font-bold text-[#8f5e25]">
                           {selectedService?.id === service.id
