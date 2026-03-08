@@ -20,6 +20,7 @@ import {
     signInWithEmailAndPassword,
     signOut,
     sendSignInLinkToEmail,
+    sendPasswordResetEmail,
     onAuthStateChanged,
     type User as FirebaseUser,
 } from "firebase/auth";
@@ -91,6 +92,11 @@ export const authService = {
     // Sign out
     async logout(): Promise<void> {
         await signOut(auth);
+    },
+
+    // Send password reset email
+    async resetPassword(email: string): Promise<void> {
+        await sendPasswordResetEmail(auth, email);
     },
 
     // Send magic link

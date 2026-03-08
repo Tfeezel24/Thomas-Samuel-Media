@@ -2160,8 +2160,9 @@ function LoginSection({ setView }: { setView: (v: View) => void }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [error, setError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const { login } = useAuth();
   const { showToast } = useStore();
@@ -2172,7 +2173,12 @@ function LoginSection({ setView }: { setView: (v: View) => void }) {
     setError('');
 
     try {
-      if (mode === 'signup') {
+      if (mode === 'forgot') {
+        const { authService: authSvc } = await import('@/lib/firebaseService');
+        await authSvc.resetPassword(email);
+        setResetSent(true);
+        showToast('Password reset email sent! Check your inbox.', 'success');
+      } else if (mode === 'signup') {
         const { authService: authSvc } = await import('@/lib/firebaseService');
         await authSvc.register(email, password, { firstName, lastName });
         // Auto-login after signup
@@ -2193,7 +2199,8 @@ function LoginSection({ setView }: { setView: (v: View) => void }) {
         : err?.code === 'auth/wrong-password' ? 'Incorrect password.'
           : err?.code === 'auth/email-already-in-use' ? 'An account with that email already exists.'
             : err?.code === 'auth/weak-password' ? 'Password should be at least 6 characters.'
-              : err?.message || 'Something went wrong.';
+              : err?.code === 'auth/too-many-requests' ? 'Too many attempts. Please try again later.'
+                : err?.message || 'Something went wrong.';
       setError(msg);
     }
 
@@ -2205,31 +2212,36 @@ function LoginSection({ setView }: { setView: (v: View) => void }) {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+            {mode === 'forgot' ? 'Reset Password' : mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </h1>
           <p className="text-muted-foreground">
-            {mode === 'signup' ? 'Sign up to book sessions and manage your projects' : 'Sign in to access your portal'}
+            {mode === 'forgot'
+              ? 'Enter your email and we\'ll send you a reset link'
+              : mode === 'signup'
+                ? 'Sign up to book sessions and manage your projects'
+                : 'Sign in to access your portal'}
           </p>
         </div>
 
         <div className="bg-card p-8 rounded-2xl border">
-          <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg">
-            <button
-              onClick={() => { setMode('login'); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'login' ? 'bg-[#2a2a2a] text-white shadow-sm' : 'text-muted-foreground'
-                }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => { setMode('signup'); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'signup' ? 'bg-[#2a2a2a] text-white shadow-sm' : 'text-muted-foreground'
-                }`}
-            >
-              Sign Up
-            </button>
-
-          </div>
+          {mode !== 'forgot' && (
+            <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg">
+              <button
+                onClick={() => { setMode('login'); setError(''); setResetSent(false); }}
+                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'login' ? 'bg-[#2a2a2a] text-white shadow-sm' : 'text-muted-foreground'
+                  }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => { setMode('signup'); setError(''); setResetSent(false); }}
+                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'signup' ? 'bg-[#2a2a2a] text-white shadow-sm' : 'text-muted-foreground'
+                  }`}
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
@@ -2238,73 +2250,126 @@ function LoginSection({ setView }: { setView: (v: View) => void }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={firstName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
-                    placeholder="John"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={lastName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    required
-                  />
-                </div>
+          {mode === 'forgot' && resetSent ? (
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <Mail className="w-8 h-8 text-green-600" />
               </div>
-            )}
-
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
+              <div>
+                <p className="font-medium text-lg">Check your email</p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  We sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.
+                </p>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Didn't receive it? Check your spam folder or{' '}
+                <button
+                  onClick={() => { setResetSent(false); setError(''); }}
+                  className="text-[#cbb26a] hover:underline font-medium"
+                >
+                  try again
+                </button>
+              </p>
+              <Button
+                onClick={() => { setMode('login'); setError(''); setResetSent(false); }}
+                className="w-full btn-gold text-white font-medium mt-4"
+              >
+                Back to Sign In
+              </Button>
             </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-
-
-            <Button
-              type="submit"
-              className="w-full btn-gold text-white font-medium"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : mode === 'login' ? (
-                'Sign In'
-              ) : (
-                'Create Account'
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === 'signup' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={firstName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
               )}
-            </Button>
-          </form>
 
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+
+              {mode !== 'forgot' && (
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(''); }}
+                    className="text-sm text-[#cbb26a] hover:underline"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full btn-gold text-white font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : mode === 'forgot' ? (
+                  'Send Reset Link'
+                ) : mode === 'login' ? (
+                  'Sign In'
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+
+              {mode === 'forgot' && (
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); }}
+                  className="w-full text-sm text-muted-foreground hover:text-white transition-colors"
+                >
+                  Back to Sign In
+                </button>
+              )}
+            </form>
+          )}
 
         </div>
       </div>
