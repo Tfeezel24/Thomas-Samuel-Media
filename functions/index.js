@@ -43,6 +43,16 @@ async function getOrCreateCustomer(uid, email) {
     const userSnap = await userRef.get();
     let customerId = userSnap.data()?.stripeCustomerId;
 
+    if (customerId) {
+        // Verify the customer still exists in Stripe (handles test→live mode switch)
+        try {
+            await getStripe().customers.retrieve(customerId);
+        } catch (err) {
+            console.log(`Stripe customer ${customerId} not found (likely test-mode ID), creating new one.`);
+            customerId = null;
+        }
+    }
+
     if (!customerId) {
         const customer = await getStripe().customers.create({
             email,

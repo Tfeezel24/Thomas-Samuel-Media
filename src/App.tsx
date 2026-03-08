@@ -1365,18 +1365,13 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                   const date = new Date();
                   date.setDate(date.getDate() + i + 1);
                   const isSelected = selectedDate?.toDateString() === date.toDateString();
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
                   return (
                     <button
                       key={i}
                       onClick={() => setDate(date)}
-                      disabled={isWeekend}
                       className={`p-3 rounded-lg text-center transition-colors ${isSelected
                         ? 'bg-[#0a0a0a] text-white border border-[#cbb26a]'
-                        : isWeekend
-                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                          : 'bg-[#faf8f2] text-black hover:bg-[#cbb26a]/20 border border-transparent'
+                        : 'bg-[#faf8f2] text-black hover:bg-[#cbb26a]/20 border border-transparent'
                         }`}
                     >
                       <p className="text-xs uppercase">{date.toLocaleDateString('en-US', { weekday: 'short' })}</p>
@@ -1654,54 +1649,48 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                   </div>
                 </label>
 
-                <label className="flex items-center gap-4 p-4 border rounded-lg cursor-not-allowed transition-colors opacity-60 bg-muted/50">
+                <label className={`flex items-center gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'paypal' ? 'border-[#cbb26a] bg-[#cbb26a]/5' : 'hover:bg-muted/50'}`}>
                   <input
                     type="radio"
                     name="payment"
-                    disabled
-                    className="w-5 h-5 text-muted-foreground"
+                    checked={paymentMethod === 'paypal'}
+                    onChange={() => setPaymentMethod('paypal')}
+                    className="w-5 h-5"
                   />
                   <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">P</div>
-                  <div className="flex-1 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-muted-foreground">PayPal</p>
-                      <p className="text-sm text-muted-foreground">Pay with your PayPal account</p>
-                    </div>
-                    <Badge variant="secondary" className="bg-red-500/10 text-red-500 border-red-500/20">Unavailable</Badge>
+                  <div className="flex-1">
+                    <p className="font-medium">PayPal</p>
+                    <p className="text-sm text-muted-foreground">Send to Feezel24@gmail.com — booking held 30 min</p>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-4 p-4 border rounded-lg cursor-not-allowed transition-colors opacity-60 bg-muted/50">
+                <label className={`flex items-center gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'venmo' ? 'border-[#cbb26a] bg-[#cbb26a]/5' : 'hover:bg-muted/50'}`}>
                   <input
                     type="radio"
                     name="payment"
-                    disabled
-                    className="w-5 h-5 text-muted-foreground"
+                    checked={paymentMethod === 'venmo'}
+                    onChange={() => setPaymentMethod('venmo')}
+                    className="w-5 h-5"
                   />
                   <div className="w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center text-white text-xs font-bold">V</div>
-                  <div className="flex-1 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-muted-foreground">Venmo</p>
-                      <p className="text-sm text-muted-foreground">Pay @studiophoto - booking held 30 min</p>
-                    </div>
-                    <Badge variant="secondary" className="bg-red-500/10 text-red-500 border-red-500/20">Unavailable</Badge>
+                  <div className="flex-1">
+                    <p className="font-medium">Venmo</p>
+                    <p className="text-sm text-muted-foreground">Send to @Thomas-Feezel — booking held 30 min</p>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-4 p-4 border rounded-lg cursor-not-allowed transition-colors opacity-60 bg-muted/50">
+                <label className={`flex items-center gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'zelle' ? 'border-[#cbb26a] bg-[#cbb26a]/5' : 'hover:bg-muted/50'}`}>
                   <input
                     type="radio"
                     name="payment"
-                    disabled
-                    className="w-5 h-5 text-muted-foreground"
+                    checked={paymentMethod === 'zelle'}
+                    onChange={() => setPaymentMethod('zelle')}
+                    className="w-5 h-5"
                   />
                   <div className="w-6 h-6 bg-purple-600 rounded flex items-center justify-center text-white text-xs font-bold">Z</div>
-                  <div className="flex-1 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-muted-foreground">Zelle</p>
-                      <p className="text-sm text-muted-foreground">Pay studio@email.com - booking held 30 min</p>
-                    </div>
-                    <Badge variant="secondary" className="bg-red-500/10 text-red-500 border-red-500/20">Unavailable</Badge>
+                  <div className="flex-1">
+                    <p className="font-medium">Zelle</p>
+                    <p className="text-sm text-muted-foreground">Send to Feezel24@gmail.com — booking held 30 min</p>
                   </div>
                 </label>
               </div>
