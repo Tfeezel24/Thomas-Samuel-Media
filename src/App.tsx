@@ -2270,7 +2270,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><button onClick={() => setView('home')} className="hover:text-white">Home</button></li>
               <li><button onClick={() => setView('portfolio')} className="hover:text-white">Portfolio</button></li>
-              <li><button onClick={() => setView('services')} className="hover:text-white">Services</button></li>
+              <li><button onClick={() => setView('services')} className="hover:text-white">Packages</button></li>
               <li><button onClick={() => setView('about')} className="hover:text-white">About</button></li>
             </ul>
           </div>
@@ -2318,10 +2318,12 @@ function Footer({ setView }: { setView: (v: View) => void }) {
 const validViews: View[] = ['home','portfolio','services','booking','about','contact','portal','admin','login','settings'];
 function pathToView(pathname: string): View {
   const segment = pathname.replace(/^\//, '').split('/')[0].toLowerCase();
+  if (segment === 'packages') return 'services';
   if (segment && validViews.includes(segment as View)) return segment as View;
   return 'home';
 }
 function viewToPath(view: View): string {
+  if (view === 'services') return '/packages';
   return view === 'home' ? '/' : `/${view}`;
 }
 
