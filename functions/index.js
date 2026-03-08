@@ -24,6 +24,8 @@ const {
     getEventsForDate,
 } = require("./calendarService");
 
+const { sendBookingConfirmation } = require("./emailService");
+
 const SERVICE_ACCOUNT = "thomas-samuel-media@appspot.gserviceaccount.com";
 
 // ─── Lazy Stripe Init ────────────────────────────────────────────────────────
@@ -314,6 +316,34 @@ async function handlePaymentSucceeded(event) {
     // ── 1d. Update Client revenue & booking count ─────────────────────────────
     if (clientId && clientId !== '') {
         await updateClientStats(clientId, paymentIntent.amount);
+    }
+
+    // ── 1e. Send Booking Confirmation Email ──────────────────────────────────
+    if (bookingId && bookingId !== '') {
+        try {
+            const bookingSnap = await db.collection('bookings').doc(bookingId).get();
+            if (bookingSnap.exists) {
+                const bookingData = bookingSnap.data();
+                const emailResult = await sendBookingConfirmation(
+                    bookingData,
+                    paymentIntent.amount,
+                    paymentOption || 'full'
+                );
+                if (emailResult.success) {
+                    console.log(`📧 Confirmation email sent for booking ${bookingId}`);
+                    // Record that email was sent on the booking
+                    await db.collection('bookings').doc(bookingId).update({
+                        'confirmationEmailSent': true,
+                        'confirmationEmailSentAt': admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                } else {
+                    console.warn(`📧 Confirmation email not sent for booking ${bookingId}: ${emailResult.reason}`);
+                }
+            }
+        } catch (emailErr) {
+            // Don't fail the payment if email fails
+            console.warn(`📧 Error sending confirmation email for booking ${bookingId}:`, emailErr.message);
+        }
     }
 
     await logActivity('payment', paymentIntent.id, 'payment_succeeded', {
