@@ -7,8 +7,8 @@ export function HeroVideo() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [videos, setVideos] = useState<string[]>(Object.values(heroVideoData));
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-    // Track which videos have been preloaded
     const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set([0]));
+    const [videoReady, setVideoReady] = useState(false);
 
     useEffect(() => {
         if (dataLoaded) {
@@ -22,7 +22,6 @@ export function HeroVideo() {
             } else {
                 setVideos(Object.values(heroVideoData));
             }
-            // Reset loaded indices when videos change
             setLoadedIndices(new Set([0]));
         }
     }, [carouselVideos, dataLoaded]);
@@ -62,19 +61,35 @@ export function HeroVideo() {
         setCurrentIndex((prev) => (prev + 1) % videos.length);
     };
 
+    // Mark video as ready once it can play through
+    const handleCanPlay = useCallback((index: number) => {
+        if (index === currentIndex) {
+            setVideoReady(true);
+        }
+    }, [currentIndex]);
+
     return (
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-black">
+            {/* Gradient placeholder shown while video loads */}
+            <div
+                className={`absolute inset-0 z-5 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                style={{
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                }}
+            />
             {videos.map((src, index) => (
                 <video
                     key={`${src}-${index}`}
                     ref={(el) => { videoRefs.current[index] = el; }}
                     src={src}
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    autoPlay={index === 0}
                     muted
                     playsInline
                     preload={index === 0 ? 'auto' : 'none'}
                     onEnded={index === currentIndex ? handleVideoEnded : undefined}
                     onTimeUpdate={index === currentIndex ? handleTimeUpdate : undefined}
+                    onCanPlay={() => handleCanPlay(index)}
                 />
             ))}
             <div className="absolute inset-0 bg-black/40 z-20" />
