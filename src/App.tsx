@@ -1048,6 +1048,20 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
     window.addEventListener('popstate', handleBookingPopState);
     return () => window.removeEventListener('popstate', handleBookingPopState);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // IMPORTANT: useBooking() must be called BEFORE any state that references selectedService
+  const {
+    selectedService,
+    selectedAddOns,
+    selectedDate,
+    selectedTimeSlot,
+    setService,
+    toggleAddOn,
+    setDate,
+    setTimeSlot,
+    clearBooking
+  } = useBooking();
+
   const [expandedBookingDesc, setExpandedBookingDesc] = useState<string | null>(null);
   const [selectedSqftTier, setSelectedSqftTier] = useState<string | null>(
     (selectedService as any)?._selectedSqftTier || null
@@ -1121,18 +1135,6 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   const [calendarBusySlots, setCalendarBusySlots] = useState<Array<{start: string; end: string; source: string}>>([]);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-
-  const {
-    selectedService,
-    selectedAddOns,
-    selectedDate,
-    selectedTimeSlot,
-    setService,
-    toggleAddOn,
-    setDate,
-    setTimeSlot,
-    clearBooking
-  } = useBooking();
 
 
   useEffect(() => {
