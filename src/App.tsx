@@ -428,74 +428,6 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
         </div>
       </section>
 
-      {/* Portfolio Preview */}
-      <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Featured Work</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-              A selection of recent projects across real estate, brands, and events
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {portfolioItems.filter((p: PortfolioItem) => p.featured).slice(0, 4).map((item: PortfolioItem) => (
-              <div
-                key={item.id}
-                className="group relative aspect-square overflow-hidden rounded-lg cursor-pointer bg-black/5"
-                onClick={() => setView('portfolio')}
-                onMouseEnter={e => {
-                  const vid = e.currentTarget.querySelector('video');
-                  if (vid) vid.play().catch(() => { });
-                }}
-                onMouseLeave={e => {
-                  const vid = e.currentTarget.querySelector('video');
-                  if (vid) vid.pause();
-                }}
-              >
-                {item.videoUrl ? (
-                  <video
-                    src={item.videoUrl}
-                    poster={item.thumbnail || item.image}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loop
-                    playsInline
-                    muted
-                    preload="metadata"
-                  />
-                ) : (
-                  <img
-                    src={item.thumbnail || item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
-                <div className="absolute inset-0 flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="text-white">
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-white/80">{item.client}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <Button
-              size="lg"
-              className="btn-gold text-white font-medium tracking-wide"
-              onClick={() => setView('portfolio')}
-            >
-              View Full Portfolio
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* How It Works */}
       <section className="py-20 px-4 relative overflow-hidden">
         <div className="max-w-6xl mx-auto">
@@ -570,6 +502,74 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
               onClick={() => setView('booking')}
             >
               Book Your Shoot
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Portfolio Preview */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Featured Work</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+              A selection of recent projects across real estate, brands, and events
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {portfolioItems.filter((p: PortfolioItem) => p.featured).slice(0, 4).map((item: PortfolioItem) => (
+              <div
+                key={item.id}
+                className="group relative aspect-square overflow-hidden rounded-lg cursor-pointer bg-black/5"
+                onClick={() => setView('portfolio')}
+                onMouseEnter={e => {
+                  const vid = e.currentTarget.querySelector('video');
+                  if (vid) vid.play().catch(() => { });
+                }}
+                onMouseLeave={e => {
+                  const vid = e.currentTarget.querySelector('video');
+                  if (vid) vid.pause();
+                }}
+              >
+                {item.videoUrl ? (
+                  <video
+                    src={item.videoUrl}
+                    poster={item.thumbnail || item.image}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loop
+                    playsInline
+                    muted
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={item.thumbnail || item.image}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
+                <div className="absolute inset-0 flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="text-white">
+                    <p className="font-medium">{item.title}</p>
+                    <p className="text-sm text-white/80">{item.client}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Button
+              size="lg"
+              className="btn-gold text-white font-medium tracking-wide"
+              onClick={() => setView('portfolio')}
+            >
+              View Full Portfolio
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
