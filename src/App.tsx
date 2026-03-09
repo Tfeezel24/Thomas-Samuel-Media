@@ -2547,7 +2547,6 @@ function Footer({ setView }: { setView: (v: View) => void }) {
               <li><button onClick={() => setView('contact')} className="hover:text-white">Contact</button></li>
               <li><button onClick={() => setView('portal')} className="hover:text-white">Client Portal</button></li>
               <li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>
-              <li><button className="hover:text-white">FAQ</button></li>
               <li><button className="hover:text-white">Privacy Policy</button></li>
             </ul>
           </div>
