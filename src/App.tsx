@@ -1604,6 +1604,28 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
               </div>
             )}
 
+            {/* Compact How It Works */}
+            <div className="bg-card rounded-xl p-6 border border-[#cbb26a]/20">
+              <h3 className="text-lg font-bold text-center mb-4 gradient-text">How It Works</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { num: '01', icon: Calendar, title: 'Book Online', desc: 'Choose your package and pick a date' },
+                  { num: '02', icon: ClipboardCheck, title: 'Confirm Details', desc: 'We confirm address and access info' },
+                  { num: '03', icon: Camera, title: 'We Shoot', desc: 'Our team captures stunning media' },
+                  { num: '04', icon: Send, title: 'Fast Delivery', desc: 'Edited media delivered in 24–48 hrs' },
+                ].map((s, i) => (
+                  <div key={i} className="text-center">
+                    <div className="relative mx-auto w-12 h-12 rounded-full border-2 border-[#cbb26a]/40 flex items-center justify-center mb-2">
+                      <s.icon className="w-5 h-5 text-[#cbb26a]" />
+                      <span className="absolute -top-1 -right-1 bg-[#8f5e25] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{s.num}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-white">{s.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex justify-end">
               <Button
                 disabled={!selectedService || (selectedService.pricingTiers && !selectedSqftTier)}
