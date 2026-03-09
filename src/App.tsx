@@ -524,24 +524,17 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 key={item.id}
                 className="group relative aspect-square overflow-hidden rounded-lg cursor-pointer bg-black/5"
                 onClick={() => setView('portfolio')}
-                onMouseEnter={e => {
-                  const vid = e.currentTarget.querySelector('video');
-                  if (vid) vid.play().catch(() => { });
-                }}
-                onMouseLeave={e => {
-                  const vid = e.currentTarget.querySelector('video');
-                  if (vid) vid.pause();
-                }}
               >
                 {item.videoUrl ? (
                   <video
                     src={item.videoUrl}
                     poster={item.thumbnail || item.image}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    autoPlay
                     loop
                     playsInline
                     muted
-                    preload="metadata"
+                    preload="auto"
                   />
                 ) : (
                   <img
@@ -647,45 +640,36 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
     const video = videoRef.current;
     if (!video) return;
 
-    const handleLoadedMetadata = () => {
+    const handleLoadedData = () => {
       video.play().catch(() => { });
     };
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleLoadedData);
+    // If already loaded, play immediately
+    if (video.readyState >= 2) {
+      video.play().catch(() => { });
+    }
 
     return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleLoadedData);
     };
   }, []);
-
-  const handleMouseEnter = () => {
-    if (videoRef.current?.paused) {
-      videoRef.current.play().catch(() => { });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (videoRef.current && !videoRef.current.paused) {
-      videoRef.current.pause();
-    }
-  };
 
   return (
     <div
       className="w-full h-full relative bg-black overflow-hidden"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       <video
         ref={videoRef}
         src={item.videoUrl}
         poster={item.thumbnail}
         className="w-full h-full object-cover"
+        autoPlay
         loop
         playsInline
         muted
         controls
-        preload="metadata"
+        preload="auto"
       />
 
       <div className="absolute top-0 left-0 right-0 flex flex-col px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20"
