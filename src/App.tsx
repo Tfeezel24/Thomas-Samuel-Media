@@ -1983,11 +1983,12 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
 function AboutSection() {
   const { portfolioItems } = useStore();
   const [btsImages, setBtsImages] = useState<string[]>([]);
+  const [btsLoading, setBtsLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const SLIDE_INTERVAL = 2000; // 2 seconds per image
 
-  // Fetch BTS images from Firestore
+  // Fetch BTS images from Firestore, fall back to BTS portfolio images
   useEffect(() => {
     async function fetchBtsImages() {
       try {
@@ -1998,14 +1999,22 @@ function AboutSection() {
           const data = snap.data();
           if (data.images && data.images.length > 0) {
             setBtsImages(data.images);
+            return;
           }
         }
       } catch (err) {
         console.error('Failed to fetch BTS images:', err);
       }
+      // Fallback: use BTS portfolio images if no dedicated about images exist
+      const btsFallback = portfolioItems
+        .filter((item: PortfolioItem) => item.category === 'bts' && item.image)
+        .map((item: PortfolioItem) => item.image);
+      if (btsFallback.length > 0) {
+        setBtsImages(btsFallback);
+      }
     }
-    fetchBtsImages();
-  }, []);
+    fetchBtsImages().finally(() => setBtsLoading(false));
+  }, [portfolioItems]);
 
   // Auto-rotate images every 2 seconds
   useEffect(() => {
@@ -2077,9 +2086,16 @@ function AboutSection() {
                   {currentImageIndex + 1} / {btsImages.length}
                 </div>
               </>
-            ) : (
+            ) : btsLoading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-card">
                 <Loader2 className="w-8 h-8 animate-spin text-[#cbb26a]" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-card">
+                <div className="text-center text-muted-foreground">
+                  <Camera className="w-12 h-12 mx-auto mb-2 text-[#cbb26a]" />
+                  <p className="text-sm">Behind the scenes</p>
+                </div>
               </div>
             )}
           </div>
