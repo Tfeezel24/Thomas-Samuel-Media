@@ -28,7 +28,9 @@ import {
   LayoutDashboard,
   Video,
   Image as ImageIcon,
-  ChevronDown
+  ChevronDown,
+  Send,
+  ClipboardCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -488,6 +490,86 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
               onClick={() => setView('portfolio')}
             >
               View Full Portfolio
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 px-4 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">How It Works</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+              From booking to delivery, we make the process seamless
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+            {/* Connector line (desktop only) */}
+            <div className="hidden md:block absolute top-16 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-[#cbb26a]/20 via-[#cbb26a]/60 to-[#cbb26a]/20" />
+
+            {[
+              {
+                step: '01',
+                icon: Calendar,
+                title: 'Book Online',
+                description: 'Choose your package, select your property size, and pick a date that works for you.',
+              },
+              {
+                step: '02',
+                icon: ClipboardCheck,
+                title: 'Confirm Details',
+                description: 'We\'ll reach out to confirm the property address, access info, and any special requests.',
+              },
+              {
+                step: '03',
+                icon: Camera,
+                title: 'We Shoot',
+                description: 'Our team arrives on-site and captures stunning photos, video, and media for your listing.',
+              },
+              {
+                step: '04',
+                icon: Send,
+                title: 'Fast Delivery',
+                description: 'Receive your professionally edited media within 24\u201348 hours, ready to publish.',
+              },
+            ].map((item, index) => (
+              <div key={index} className="relative flex flex-col items-center text-center group">
+                {/* Step number */}
+                <div className="relative z-10 mb-6">
+                  <div className="w-28 h-28 rounded-full bg-card border-2 border-[#cbb26a]/30 flex items-center justify-center group-hover:border-[#cbb26a] group-hover:shadow-[0_0_30px_rgba(203,178,106,0.15)] transition-all duration-500">
+                    <item.icon className="w-10 h-10 text-[#cbb26a]" />
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#cbb26a] text-black text-xs font-bold flex items-center justify-center shadow-lg">
+                    {item.step}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <h3 className="text-lg font-bold mb-2 text-white">{item.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-[220px]">
+                  {item.description}
+                </p>
+
+                {/* Mobile arrow (between steps) */}
+                {index < 3 && (
+                  <div className="md:hidden mt-6 mb-2">
+                    <ChevronDown className="w-6 h-6 text-[#cbb26a]/50 mx-auto" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-14">
+            <Button
+              className="gold-gradient text-black font-semibold px-8 py-3 rounded-full hover:shadow-[0_0_30px_rgba(203,178,106,0.3)] transition-all duration-300"
+              onClick={() => setView('booking')}
+            >
+              Book Your Shoot
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
