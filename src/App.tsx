@@ -52,6 +52,10 @@ import { HeroVideo } from '@/components/HeroVideo';
 import { PaymentForm } from '@/components/PaymentForm';
 import { ClientPortal } from '@/components/ClientPortal';
 import { SettingsPage } from '@/components/SettingsPage';
+import { ScrollReveal } from '@/components/ScrollReveal';
+import { StatsCounter } from '@/components/StatsCounter';
+import { TextReveal } from '@/components/TextReveal';
+import { EnhancedTestimonials } from '@/components/EnhancedTestimonials';
 import './App.css';
 import type {
   Service,
@@ -96,7 +100,14 @@ function Toast() {
 // Navigation Component
 function Navigation({ currentView, setView }: { currentView: View; setView: (v: View) => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { label: 'Home', view: 'home' as View },
@@ -107,7 +118,7 @@ function Navigation({ currentView, setView }: { currentView: View; setView: (v: 
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 glass">
+    <nav className={`fixed top-0 left-0 right-0 z-40 glass ${scrolled ? 'scrolled' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -318,19 +329,35 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
   const { services, portfolioItems, testimonials } = useStore();
   const approvedTestimonials = testimonials.filter((t: Testimonial) => t.status === 'approved' || !t.status);
   const [expandedHomeDesc, setExpandedHomeDesc] = useState<string | null>(null);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setParallaxOffset(window.scrollY * 0.35);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen">
-      {/* Hero */}
+      {/* Hero with Parallax */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
+        <div
+          className="absolute inset-0 z-0 parallax-hero"
+          style={{ transform: `translateY(${parallaxOffset}px) scale(1.1)` }}
+        >
           <HeroVideo />
         </div>
 
-        <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
+        <div
+          className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto hero-text-shadow"
+          style={{ transform: `translateY(${parallaxOffset * 0.15}px)` }}
+        >
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight">
-            Visual Stories<br />that sell
+            <TextReveal text="Visual Stories that sell" delay={300} staggerMs={150} />
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto" style={{ opacity: 0, animation: 'fadeIn 0.8s ease-out 1.2s forwards' }}>
             Cinematic video + photo packages crafted for luxury agents, builders, and developers.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -361,16 +388,19 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
       {/* Packages Preview */}
       <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Our Packages</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Real estate media packages tailored to every property size
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Our Packages</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Real estate media packages tailored to every property size
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {services.slice(0, 3).map((service: Service) => (
-              <Card key={service.id} className="group cursor-pointer gold-border card-lift overflow-hidden !pt-0 !gap-0">
+            {services.slice(0, 3).map((service: Service, index: number) => (
+              <ScrollReveal key={service.id} delay={index * 150}>
+              <Card className="group cursor-pointer gold-border card-pop-glow overflow-hidden !pt-0 !gap-0">
                 <div className="aspect-[16/10] overflow-hidden">
                   <img
                     src={service.image}
@@ -412,31 +442,36 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   </Button>
                 </CardFooter>
               </Card>
+              </ScrollReveal>
             ))}
           </div>
 
-          <div className="text-center mt-10">
-            <Button
-              size="lg"
-              className="btn-gold text-white font-medium tracking-wide"
-              onClick={() => setView('services')}
-            >
-              View All Packages
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          <ScrollReveal delay={400}>
+            <div className="text-center mt-10">
+              <Button
+                size="lg"
+                className="btn-gold text-white font-medium tracking-wide"
+                onClick={() => setView('services')}
+              >
+                View All Packages
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* How It Works */}
       <section className="py-20 px-4 relative overflow-hidden">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">How It Works</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-              From booking to delivery, we make the process seamless
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">How It Works</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+                From booking to delivery, we make the process seamless
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
             {/* Connector line (desktop only) */}
@@ -468,7 +503,8 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 description: 'Receive your professionally edited media within 24\u201348 hours, ready to publish.',
               },
             ].map((item, index) => (
-              <div key={index} className="relative flex flex-col items-center text-center group">
+              <ScrollReveal key={index} delay={index * 150}>
+              <div className="relative flex flex-col items-center text-center group">
                 {/* Step number */}
                 <div className="relative z-10 mb-6">
                   <div className="w-28 h-28 rounded-full bg-card border-2 border-[#cbb26a]/30 flex items-center justify-center group-hover:border-[#cbb26a] group-hover:shadow-[0_0_30px_rgba(203,178,106,0.15)] transition-all duration-500">
@@ -492,6 +528,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   </div>
                 )}
               </div>
+              </ScrollReveal>
             ))}
           </div>
 
@@ -511,17 +548,19 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
       {/* Portfolio Preview */}
       <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Featured Work</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-              A selection of recent projects across real estate, brands, and events
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Featured Work</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+                A selection of recent projects across real estate, brands, and events
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {portfolioItems.filter((p: PortfolioItem) => p.featured).slice(0, 4).map((item: PortfolioItem) => (
+            {portfolioItems.filter((p: PortfolioItem) => p.featured).slice(0, 4).map((item: PortfolioItem, index: number) => (
+              <ScrollReveal key={item.id} delay={index * 150}>
               <div
-                key={item.id}
                 className="group relative aspect-square overflow-hidden rounded-lg cursor-pointer bg-black/5"
                 onClick={() => setView('portfolio')}
               >
@@ -553,81 +592,53 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   </div>
                 </div>
               </div>
+              </ScrollReveal>
             ))}
           </div>
 
-          <div className="text-center mt-10">
+          <ScrollReveal delay={400}>
+            <div className="text-center mt-10">
+              <Button
+                size="lg"
+                className="btn-gold text-white font-medium tracking-wide"
+                onClick={() => setView('portfolio')}
+              >
+                View Full Portfolio
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* Stats Counter */}
+      <StatsCounter />
+
+      {/* Enhanced Testimonials */}
+      <EnhancedTestimonials testimonials={approvedTestimonials} />
+
+      {/* CTA Section */}
+      <ScrollReveal>
+        <section className="py-20 px-4 bg-background text-foreground">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text-dark">
+              Ready to Book?
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+              Check real-time availability and secure your session in under 2 minutes.
+              No back-and-forth, no surprises.
+            </p>
             <Button
               size="lg"
               className="btn-gold text-white font-medium tracking-wide"
-              onClick={() => setView('portfolio')}
+              onClick={() => setView('booking')}
             >
-              View Full Portfolio
+              Check Availability
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">What Clients Say</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Trusted by real estate agents, contractors, and brands
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {approvedTestimonials.map((testimonial: Testimonial) => (
-              <Card key={testimonial.id} className="h-full gold-border">
-                <CardHeader>
-                  <div className="flex items-center gap-1 mb-2">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-[#cbb26a] text-[#cbb26a]" />
-                    ))}
-                  </div>
-                  <CardDescription className="text-sm">"{testimonial.content}"</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={testimonial.avatar} />
-                      <AvatarFallback>{testimonial.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground">{testimonial.company}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-background text-foreground">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text-dark">
-            Ready to Book?
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Check real-time availability and secure your session in under 2 minutes.
-            No back-and-forth, no surprises.
-          </p>
-          <Button
-            size="lg"
-            className="btn-gold text-white font-medium tracking-wide"
-            onClick={() => setView('booking')}
-          >
-            Check Availability
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      </section>
+        </section>
+      </ScrollReveal>
     </div>
   );
 }

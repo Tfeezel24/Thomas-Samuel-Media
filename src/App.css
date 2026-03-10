@@ -135,6 +135,20 @@ html {
   box-shadow: 0 10px 40px rgba(143, 94, 37, 0.08);
 }
 
+/* ─── Card Pop & Glow (Effect #3 modified) ─────────────────── */
+.card-pop-glow {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s ease;
+}
+
+.card-pop-glow:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(203, 178, 106, 0.15),
+              0 0 40px rgba(203, 178, 106, 0.08);
+  border-color: rgba(203, 178, 106, 0.6) !important;
+}
+
 /* ─── Gold Gradient Text ────────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #8f5e25 0%, #fbf4a1 50%, #8f5e25 100%);
@@ -191,12 +205,18 @@ html {
   box-shadow: 0 0 15px rgba(203, 178, 106, 0.1);
 }
 
-/* ─── Glass Effect (warm tint) ──────────────────────────────── */
+/* ─── Glass Effect (Glassmorphism) ─────────────────────────── */
 .glass {
-  background: rgba(10, 10, 10, 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid rgba(203, 178, 106, 0.15);
+  transition: background 0.3s ease;
+}
+
+.glass.scrolled {
+  background: rgba(10, 10, 10, 0.8);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
 .glass-dark {
@@ -269,4 +289,15 @@ html {
   100% {
     width: 100%;
   }
+}
+
+/* ─── Parallax Hero ────────────────────────────────────────── */
+.parallax-hero {
+  will-change: transform;
+  transition: transform 0.1s linear;
+}
+
+/* ─── Hero Text Shadow for readability ─────────────────────── */
+.hero-text-shadow {
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5), 0 4px 40px rgba(0, 0, 0, 0.3);
 }
