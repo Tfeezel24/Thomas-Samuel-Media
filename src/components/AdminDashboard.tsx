@@ -122,7 +122,7 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                         <TabsTrigger value="projects" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><Package className="w-4 h-4" />Projects</TabsTrigger>
                         <TabsTrigger value="invoices" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><Database className="w-4 h-4" />Invoices</TabsTrigger>
                         <TabsTrigger value="transactions" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><CreditCard className="w-4 h-4" />Transactions</TabsTrigger>
-                        <TabsTrigger value="testimonials" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><Star className="w-4 h-4" />Tesimonials</TabsTrigger>
+                        <TabsTrigger value="testimonials" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><Star className="w-4 h-4" />Testimonials</TabsTrigger>
                         <TabsTrigger value="carousel"><Play className="w-4 h-4 mr-1" />Carousel</TabsTrigger>
                         <TabsTrigger value="portfolio"><ImageIcon className="w-4 h-4 mr-1" />Portfolio</TabsTrigger>
                         <TabsTrigger value="packages"><Package className="w-4 h-4 mr-1" />Packages</TabsTrigger>
