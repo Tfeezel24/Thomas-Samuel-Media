@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 interface ScrollRevealProps {
