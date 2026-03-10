@@ -716,7 +716,6 @@ function PortfolioSection() {
 
   const categories = [
     { value: 'featured', label: 'Featured Work' },
-    { value: 'all', label: 'All Work' },
     ...populatedCategories.map(cat => ({ value: cat, label: formatLabel(cat) })),
   ];
 
