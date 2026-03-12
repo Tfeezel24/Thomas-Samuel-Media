@@ -52,6 +52,7 @@ import { HeroVideo } from '@/components/HeroVideo';
 import { PaymentForm } from '@/components/PaymentForm';
 import { ClientPortal } from '@/components/ClientPortal';
 import { SettingsPage } from '@/components/SettingsPage';
+import { TermsOfServicePage, PrivacyPolicyPage, CancellationPolicyPage } from '@/components/LegalPages';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { StatsCounter } from '@/components/StatsCounter';
 import { TextReveal } from '@/components/TextReveal';
@@ -69,7 +70,7 @@ import type {
 } from '@/types';
 
 // View types for navigation
-type View = 'home' | 'portfolio' | 'services' | 'booking' | 'about' | 'contact' | 'portal' | 'admin' | 'login' | 'settings';
+type View = 'home' | 'portfolio' | 'services' | 'booking' | 'about' | 'contact' | 'portal' | 'admin' | 'login' | 'settings' | 'terms' | 'privacy' | 'cancellation';
 
 // Toast Component
 function Toast() {
@@ -2660,8 +2661,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><button onClick={() => setView('contact')} className="hover:text-white">Contact</button></li>
               <li><button onClick={() => setView('portal')} className="hover:text-white">Client Portal</button></li>
-              <li><button onClick={() => setView('admin')} className="hover:text-white">Admin Dashboard</button></li>
-              <li><button className="hover:text-white">Privacy Policy</button></li>
+              <li><button onClick={() => setView('privacy')} className="hover:text-white">Privacy Policy</button></li>
             </ul>
           </div>
 
@@ -2683,9 +2683,9 @@ function Footer({ setView }: { setView: (v: View) => void }) {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-400">
           <p>&copy; 2026 Thomas Samuel Media. All rights reserved.</p>
           <div className="flex gap-4">
-            <button className="hover:text-white">Terms of Service</button>
-            <button className="hover:text-white">Privacy Policy</button>
-            <button className="hover:text-white">Cancellation Policy</button>
+            <button onClick={() => setView('terms')} className="hover:text-white">Terms of Service</button>
+            <button onClick={() => setView('privacy')} className="hover:text-white">Privacy Policy</button>
+            <button onClick={() => setView('cancellation')} className="hover:text-white">Cancellation Policy</button>
           </div>
         </div>
       </div>
@@ -2694,7 +2694,7 @@ function Footer({ setView }: { setView: (v: View) => void }) {
 }
 
 // Helper: map URL pathname to a View
-const validViews: View[] = ['home','portfolio','services','booking','about','contact','portal','admin','login','settings'];
+const validViews: View[] = ['home','portfolio','services','booking','about','contact','portal','admin','login','settings','terms','privacy','cancellation'];
 function pathToView(pathname: string): View {
   const segment = pathname.replace(/^\//, '').split('/')[0].toLowerCase();
   if (segment === 'packages') return 'services';
@@ -2704,6 +2704,39 @@ function pathToView(pathname: string): View {
 function viewToPath(view: View): string {
   if (view === 'services') return '/packages';
   return view === 'home' ? '/' : `/${view}`;
+}
+
+// ─── Protected Route Guards ──────────────────────────────────────────────────
+function RequireAdmin({ children, setView }: { children: React.ReactNode; setView: (v: View) => void }) {
+  const { isAuthenticated, authLoading, user } = useAuth();
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+  if (!isAuthenticated || user?.role !== 'admin') {
+    setTimeout(() => setView('login'), 0);
+    return null;
+  }
+  return <>{children}</>;
+}
+
+function RequireAuth({ children, setView }: { children: React.ReactNode; setView: (v: View) => void }) {
+  const { isAuthenticated, authLoading } = useAuth();
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    setTimeout(() => setView('login'), 0);
+    return null;
+  }
+  return <>{children}</>;
 }
 
 // Main App Component
@@ -2797,8 +2830,11 @@ function App() {
         {currentView === 'contact' && <ContactSection />}
         {currentView === 'login' && <LoginSection setView={setView} />}
         {currentView === 'portal' && <ClientPortal setView={setView} />}
-        {currentView === 'admin' && <AdminDashboard setView={setView} />}
-        {currentView === 'settings' && <SettingsPage />}
+        {currentView === 'admin' && <RequireAdmin setView={setView}><AdminDashboard setView={setView} /></RequireAdmin>}
+        {currentView === 'settings' && <RequireAuth setView={setView}><SettingsPage /></RequireAuth>}
+        {currentView === 'terms' && <TermsOfServicePage setView={setView} />}
+        {currentView === 'privacy' && <PrivacyPolicyPage setView={setView} />}
+        {currentView === 'cancellation' && <CancellationPolicyPage setView={setView} />}
       </main>
 
       {currentView !== 'portal' && currentView !== 'admin' && currentView !== 'login' && (

@@ -112,25 +112,6 @@ export const authService = {
     async getUserProfile(uid: string): Promise<User | null> {
         const snap = await getDoc(doc(db, "users", uid));
 
-        // Special logic for demo admin
-        const currentUser = auth.currentUser;
-        if (currentUser && currentUser.email === "admin@gmail.com") {
-            const data = snap.exists() ? snap.data() : null;
-            if (!data || data.role !== "admin" || data.isSuperAdmin !== true) {
-                console.log("Ensuring super admin role for demo account...");
-                const adminData = {
-                    email: currentUser.email,
-                    role: "admin",
-                    isSuperAdmin: true,
-                    profile: data?.profile || { firstName: "Admin", lastName: "User" },
-                    createdAt: data?.createdAt || serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                };
-                await setDoc(doc(db, "users", uid), adminData, { merge: true });
-                return { id: uid, ...adminData, createdAt: new Date() } as User;
-            }
-        }
-
         if (!snap.exists()) return null;
         return { id: snap.id, ...convertTimestamps(snap.data()) } as User;
     },
@@ -653,20 +634,6 @@ export async function seedFirestore(): Promise<void> {
     const { services, addOns, portfolioItems, testimonials, mockClients, mockBookings, mockInvoices, mockProjects } = await import("@/data/mockData");
 
     console.log("Seeding Firestore...");
-
-    // 1. Seed Admin User if missing (for demo purposes)
-    const adminEmail = "admin@gmail.com";
-    const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", adminEmail), limit(1)));
-    if (usersSnap.empty) {
-        console.log("Creating default admin user document...");
-        // This is just the document; the user must still exist in Firebase Auth
-        // For development, we assume if they can log in, this document will link by UID or we create it here
-        // Note: In a real app, you'd create the Auth user first. Here we just ensure the role exists if uid matches.
-        // We'll use a fixed ID for the demo admin if possible, or just let them register.
-        // Better: just seed the 'users' document for the known admin UID if we had it.
-        // Since we don't have the UID yet, we'll let them register then manually change role, 
-        // OR we seed a user with a specific ID that the app expects.
-    }
 
     // Function to seed a collection if empty
     const seedIfEmpty = async (collName: string, dataArray: any[]) => {

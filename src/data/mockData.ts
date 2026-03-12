@@ -264,7 +264,7 @@ export const portfolioItems: PortfolioItem[] = [
 
 export const testimonials: Testimonial[] = [
   {
-    id: 'test-1',
+    id: 'testimonial-1',
     name: 'Sarah Mitchell',
     role: 'Real Estate Agent',
     company: 'Compass Realty',
@@ -274,7 +274,7 @@ export const testimonials: Testimonial[] = [
     category: 'real-estate'
   },
   {
-    id: 'test-2',
+    id: 'testimonial-2',
     name: 'Mike Thompson',
     role: 'Owner',
     company: 'MT Construction',
@@ -284,7 +284,7 @@ export const testimonials: Testimonial[] = [
     category: 'contractor'
   },
   {
-    id: 'test-3',
+    id: 'testimonial-3',
     name: 'Alex Chen',
     role: 'Marketing Director',
     company: 'Bloom Brands',
@@ -294,7 +294,7 @@ export const testimonials: Testimonial[] = [
     category: 'brand'
   },
   {
-    id: 'test-4',
+    id: 'testimonial-4',
     name: 'Jennifer Walsh',
     role: 'Broker',
     company: 'Luxury Living',
