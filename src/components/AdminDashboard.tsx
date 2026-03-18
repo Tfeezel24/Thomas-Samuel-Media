@@ -327,7 +327,6 @@ function CarouselTab({ videos, onCreate, onUpdate, onDelete }: {
     const openEdit = (v: CarouselVideo) => { setForm({ title: v.title, url: v.url, sortOrder: v.sortOrder, isActive: v.isActive }); setEditItem(v); setShowForm(true); };
 
     const handleSave = async () => {
-        if (!form.title) { alert('Title is required'); return; }
         if (!form.url) { alert('Video URL is required'); return; }
         if (editItem) { await onUpdate(editItem.id, form); }
         else { await onCreate(form); }
@@ -349,7 +348,7 @@ function CarouselTab({ videos, onCreate, onUpdate, onDelete }: {
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-[#cbb26a]/20 rounded-lg flex items-center justify-center"><Play className="w-6 h-6 text-[#8f5e25]" /></div>
                                 <div>
-                                    <p className="font-medium">{v.title}</p>
+                                    <p className="font-medium">{v.title || 'Untitled'}</p>
                                     <p className="text-xs text-muted-foreground truncate max-w-[300px]">{v.url}</p>
                                 </div>
                             </div>
@@ -367,7 +366,7 @@ function CarouselTab({ videos, onCreate, onUpdate, onDelete }: {
 
             <Modal open={showForm} onClose={() => setShowForm(false)} title={editItem ? 'Edit Carousel Video' : 'Add Carousel Video'}>
                 <div className="space-y-4">
-                    <div><Label>Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Video title" /></div>
+                    <div><Label>Title (Optional)</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Video title" /></div>
 
                     <div className="space-y-2">
                         <Label>Upload Video</Label>

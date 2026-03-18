@@ -588,7 +588,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
                 <div className="absolute inset-0 flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                   <div className="text-white">
-                    <p className="font-medium">{item.title}</p>
+                    <p className="font-medium">{item.title || 'Untitled'}</p>
                     <p className="text-sm text-white/80">{item.client}</p>
                   </div>
                 </div>
@@ -692,7 +692,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
         <Badge className="w-fit mb-1 bg-[#cbb26a]/90 text-white border-0 text-xs">
           {item.category}
         </Badge>
-        <h3 className="text-white font-semibold text-sm drop-shadow-md truncate">{item.title}</h3>
+        <h3 className="text-white font-semibold text-sm drop-shadow-md truncate">{item.title || 'Untitled'}</h3>
       </div>
     </div>
   );
@@ -796,7 +796,7 @@ function PortfolioSection() {
                     <Badge className="w-fit mb-2 bg-[#cbb26a]/30 text-white border-0">
                       {item.category}
                     </Badge>
-                    <h3 className="text-white font-semibold text-lg">{item.title}</h3>
+                    <h3 className="text-white font-semibold text-lg">{item.title || 'Untitled'}</h3>
                     <p className="text-white/80 text-sm">{item.client}</p>
                   </div>
                 </>

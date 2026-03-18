@@ -168,7 +168,7 @@ export interface Project {
 // Portfolio Types
 export interface PortfolioItem {
   id: string;
-  title: string;
+  title?: string;
   category: string; // dynamic, managed by admin
   image: string;
   videoUrl?: string;
@@ -216,7 +216,7 @@ export interface DashboardMetrics {
 // Carousel Video Types
 export interface CarouselVideo {
   id: string;
-  title: string;
+  title?: string;
   url: string;
   sortOrder: number;
   isActive: boolean;
