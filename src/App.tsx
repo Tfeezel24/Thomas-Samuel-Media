@@ -732,16 +732,10 @@ function PortfolioSection() {
     return typeItems.filter((item: PortfolioItem) => item.category === subFilter);
   }, [mainTab, subFilter, portfolioItems]);
 
-  // Dynamic sub-categories: only show those that have items in the current main tab
+  // Sub-categories for the current main tab
   const availableSubCategories = useMemo(() => {
-    const relevantCats = mainTab === 'photo' ? photoCategories : mainTab === 'video' ? videoCategories : [];
-    return relevantCats.filter(cat => 
-      portfolioItems.some((item: PortfolioItem) => {
-        const itemType = item.type || (item.videoUrl ? 'video' : 'photo');
-        return itemType === mainTab && item.category === cat;
-      })
-    );
-  }, [mainTab, portfolioItems]);
+    return mainTab === 'photo' ? photoCategories : mainTab === 'video' ? videoCategories : [];
+  }, [mainTab]);
 
   // Pagination Logic
   const displayedItems = filteredItems.slice(0, visibleCount);

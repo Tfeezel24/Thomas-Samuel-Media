@@ -454,7 +454,9 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
     const handleSave = async () => {
         if (!form.image && !form.videoUrl) { alert('Image or Video URL is required'); return; }
-        const data = { ...form, date: new Date(), sortOrder: Number(form.sortOrder) };
+        // Ensure type is correct based on presence of videoUrl if not already correct
+        const finalType = form.videoUrl ? 'video' : 'photo';
+        const data = { ...form, type: finalType, date: new Date(), sortOrder: Number(form.sortOrder) };
         if (editItem) { await onUpdate(editItem.id, data); }
         else { await onCreate(data); }
         setShowForm(false);
