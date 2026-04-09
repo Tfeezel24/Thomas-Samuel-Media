@@ -427,7 +427,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
 
-    const emptyForm = { title: '', category: categories[0] || 'real-estate', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false, sortOrder: 0 };
+    const emptyForm = { title: '', category: categories[0] || 'real-estate', type: 'photo' as 'photo' | 'video', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false, sortOrder: 0 };
     const [form, setForm] = useState(emptyForm);
     const [uploading, setUploading] = useState(false);
 
@@ -448,7 +448,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
     const openCreate = () => { setForm({ ...emptyForm, category: categories[0] || '' }); setEditItem(null); setShowForm(true); };
     const openEdit = (item: PortfolioItem) => {
-        setForm({ title: item.title, category: item.category, image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
+        setForm({ title: item.title, category: item.category, type: item.type || (item.videoUrl ? 'video' : 'photo'), image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
         setEditItem(item); setShowForm(true);
     };
 
@@ -623,7 +623,15 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
             <Modal open={showForm} onClose={() => setShowForm(false)} title={editItem ? 'Edit Portfolio Item' : 'Add Portfolio Item'}>
                 <div className="space-y-4">
-                    <div><Label>Title (Optional)</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Item title" /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Label>Title (Optional)</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Item title" /></div>
+                        <div><Label>Type</Label>
+                            <select className="w-full border rounded-md px-3 py-2 bg-background" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'photo' | 'video' })}>
+                                <option value="photo">Photo</option>
+                                <option value="video">Video</option>
+                            </select>
+                        </div>
+                    </div>
                     <div><Label>Category</Label>
                         <select className="w-full border rounded-md px-3 py-2 bg-background" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                             {categories.map(c => <option key={c} value={c}>{formatLabel(c)}</option>)}

@@ -170,6 +170,7 @@ export interface PortfolioItem {
   id: string;
   title?: string;
   category: string; // dynamic, managed by admin
+  type: 'photo' | 'video';
   image: string;
   videoUrl?: string;
   thumbnail: string;

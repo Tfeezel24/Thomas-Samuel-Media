@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Camera,
   Calendar,
@@ -700,7 +700,8 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
 
 // Portfolio Section
 function PortfolioSection() {
-  const [filter, setFilter] = useState<string>('featured');
+  const [mainTab, setMainTab] = useState<'featured' | 'photo' | 'video'>('featured');
+  const [subFilter, setSubFilter] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState(12);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { portfolioItems, portfolioCategories } = useStore();
@@ -709,22 +710,38 @@ function PortfolioSection() {
   const formatLabel = (slug: string) =>
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-  // Dynamic categories: only show categories that have at least one item
-  // 'bts' is excluded from the 'all' display but can still have its own tab if it has items
-  const populatedCategories = portfolioCategories.filter(cat =>
-    portfolioItems.some((item: PortfolioItem) => item.category === cat)
-  );
+  // Define sub-categories for Photo and Video
+  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
+  const videoCategories = ['brand-video', 'travel-video'];
 
-  const categories = [
-    { value: 'featured', label: 'Featured Work' },
-    ...populatedCategories.map(cat => ({ value: cat, label: formatLabel(cat) })),
-  ];
+  // Filter items based on main tab and sub-filter
+  const filteredItems = useMemo(() => {
+    if (mainTab === 'featured') {
+      return portfolioItems.filter((item: PortfolioItem) => item.featured);
+    }
+    
+    const typeItems = portfolioItems.filter((item: PortfolioItem) => {
+      // If item has explicit type, use it. Otherwise, infer from videoUrl or category.
+      if (item.type) return item.type === mainTab;
+      if (mainTab === 'video') return !!item.videoUrl || videoCategories.includes(item.category);
+      if (mainTab === 'photo') return !item.videoUrl && !videoCategories.includes(item.category);
+      return false;
+    });
 
-  const filteredItems = filter === 'featured'
-    ? portfolioItems.filter((item: PortfolioItem) => item.featured)
-    : filter === 'all'
-      ? portfolioItems.filter((item: PortfolioItem) => item.category !== 'bts')
-      : portfolioItems.filter((item: PortfolioItem) => item.category === filter);
+    if (subFilter === 'all') return typeItems;
+    return typeItems.filter((item: PortfolioItem) => item.category === subFilter);
+  }, [mainTab, subFilter, portfolioItems]);
+
+  // Dynamic sub-categories: only show those that have items in the current main tab
+  const availableSubCategories = useMemo(() => {
+    const relevantCats = mainTab === 'photo' ? photoCategories : mainTab === 'video' ? videoCategories : [];
+    return relevantCats.filter(cat => 
+      portfolioItems.some((item: PortfolioItem) => {
+        const itemType = item.type || (item.videoUrl ? 'video' : 'photo');
+        return itemType === mainTab && item.category === cat;
+      })
+    );
+  }, [mainTab, portfolioItems]);
 
   // Pagination Logic
   const displayedItems = filteredItems.slice(0, visibleCount);
@@ -736,7 +753,7 @@ function PortfolioSection() {
   // Reset pagination when filter changes
   useEffect(() => {
     setVisibleCount(12);
-  }, [filter]);
+  }, [mainTab, subFilter]);
 
   return (
     <div className="min-h-screen pt-20 pb-20 px-4">
@@ -744,27 +761,64 @@ function PortfolioSection() {
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">Portfolio</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-            {filter === 'featured'
+            {mainTab === 'featured'
               ? 'A Selection of recent projects that highlight our craftsmanship'
-              : 'A curated selection of recent work across real estate, brands, and commercial projects'}
+              : mainTab === 'photo'
+                ? 'Professional photography across fashion, portraits, food, and more'
+                : 'Cinematic brand stories and travel films captured with precision'}
           </p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {categories.map(cat => (
+        {/* Main Tabs */}
+        <div className="flex justify-center gap-4 mb-8">
+          {[
+            { id: 'featured', label: 'Featured', icon: Star },
+            { id: 'photo', label: 'Photos', icon: ImageIcon },
+            { id: 'video', label: 'Videos', icon: Video },
+          ].map((tab) => (
             <button
-              key={cat.value}
-              onClick={() => setFilter(cat.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === cat.value
-                ? 'bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white'
-                : 'bg-[#cbb26a]/20 text-[#8f5e25] hover:bg-[#e8d9b0]'
+              key={tab.id}
+              onClick={() => {
+                setMainTab(tab.id as any);
+                setSubFilter('all');
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${mainTab === tab.id
+                ? 'bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white shadow-lg scale-105'
+                : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
                 }`}
             >
-              {cat.label}
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
             </button>
           ))}
         </div>
+
+        {/* Sub-Filter Tabs */}
+        {mainTab !== 'featured' && availableSubCategories.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mb-10 animate-in fade-in slide-in-from-top-2 duration-500">
+            <button
+              onClick={() => setSubFilter('all')}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === 'all'
+                ? 'bg-[#8f5e25] text-white'
+                : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
+                }`}
+            >
+              All {mainTab === 'photo' ? 'Photos' : 'Videos'}
+            </button>
+            {availableSubCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSubFilter(cat)}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === cat
+                  ? 'bg-[#8f5e25] text-white'
+                  : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
+                  }`}
+              >
+                {formatLabel(cat)}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Gallery */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
