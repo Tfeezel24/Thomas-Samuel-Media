@@ -22,7 +22,7 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 // Initialize Functions
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
-export const functions = getFunctions(app);
+export const functions = getFunctions(app, 'us-central1');
 
 // Connect to emulator if running locally
 // Connect to emulator if running locally

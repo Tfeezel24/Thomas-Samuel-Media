@@ -456,10 +456,33 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
         if (!form.image && !form.videoUrl) { alert('Image or Video URL is required'); return; }
         // Ensure type is correct based on presence of videoUrl if not already correct
         const finalType = form.videoUrl ? 'video' : 'photo';
-        const data = { ...form, type: finalType, date: new Date(), sortOrder: Number(form.sortOrder) };
-        if (editItem) { await onUpdate(editItem.id, data); }
-        else { await onCreate(data); }
-        setShowForm(false);
+        
+        // Construct clean data object with only necessary fields
+        const data: any = {
+            title: form.title,
+            category: form.category,
+            type: finalType,
+            image: form.image,
+            videoUrl: form.videoUrl || '',
+            thumbnail: form.thumbnail || '',
+            description: form.description || '',
+            client: form.client || '',
+            featured: !!form.featured,
+            sortOrder: Number(form.sortOrder) || 0,
+            date: new Date()
+        };
+
+        try {
+            if (editItem) { 
+                await onUpdate(editItem.id, data); 
+            } else { 
+                await onCreate(data); 
+            }
+            setShowForm(false);
+        } catch (error) {
+            console.error('Save failed:', error);
+            // Error is handled by the store's toast, but we keep the form open on failure
+        }
     };
 
     const handleAddCategory = async () => {
