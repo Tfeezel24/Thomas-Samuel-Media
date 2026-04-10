@@ -442,10 +442,24 @@ export const portfolioService = {
     },
 
     async update(id: string, data: Partial<PortfolioItem>): Promise<void> {
-        const updateData: any = { ...data };
+        const updateData: any = {};
+        
+        // Only include valid fields to avoid Firestore errors with undefined values
+        const validFields = ['title', 'category', 'type', 'image', 'videoUrl', 'thumbnail', 'description', 'client', 'date', 'featured', 'sortOrder'];
+        
+        Object.keys(data).forEach(key => {
+            if (validFields.includes(key) && (data as any)[key] !== undefined) {
+                updateData[key] = (data as any)[key];
+            }
+        });
+
         if (updateData.date && updateData.date instanceof Date) {
             updateData.date = Timestamp.fromDate(updateData.date);
         }
+        
+        // If id is present in updateData (from spreading an item), remove it as updateDoc doesn't want it
+        delete updateData.id;
+
         await updateDoc(doc(db, "portfolio", id), updateData);
     },
 
@@ -460,18 +474,32 @@ const DEFAULT_CATEGORIES = ['fashion', 'headshots-and-portraits', 'food', 'event
 
 export const portfolioCategoriesService = {
     async getAll(): Promise<string[]> {
-        const snap = await getDoc(doc(db, 'settings', CATEGORIES_DOC));
-        if (snap.exists()) {
-            const data = snap.data();
+        // Try both camelCase and snake_case for backward compatibility
+        const [snap1, snap2] = await Promise.all([
+            getDoc(doc(db, 'settings', CATEGORIES_DOC)),
+            getDoc(doc(db, 'settings', 'portfolio_categories'))
+        ]);
+        
+        if (snap1.exists()) {
+            const data = snap1.data();
             return Array.isArray(data.categories) ? data.categories : DEFAULT_CATEGORIES;
         }
+        if (snap2.exists()) {
+            const data = snap2.data();
+            return Array.isArray(data.categories) ? data.categories : DEFAULT_CATEGORIES;
+        }
+        
         // First time: seed defaults
         await setDoc(doc(db, 'settings', CATEGORIES_DOC), { categories: DEFAULT_CATEGORIES });
         return DEFAULT_CATEGORIES;
     },
 
     async save(categories: string[]): Promise<void> {
-        await setDoc(doc(db, 'settings', CATEGORIES_DOC), { categories });
+        // Save to both for safety during migration
+        await Promise.all([
+            setDoc(doc(db, 'settings', CATEGORIES_DOC), { categories }),
+            setDoc(doc(db, 'settings', 'portfolio_categories'), { categories })
+        ]);
     },
 };
 
