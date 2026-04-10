@@ -712,10 +712,9 @@ function PortfolioSection() {
   // Filter items based on main tab and sub-filter
   const filteredItems = useMemo(() => {
     const typeItems = portfolioItems.filter((item: PortfolioItem) => {
-      // If item has explicit type, use it. Otherwise, infer from videoUrl or category.
-      if (item.type) return item.type === mainTab;
-      if (mainTab === 'video') return !!item.videoUrl || videoCategories.includes(item.category);
-      if (mainTab === 'photo') return !item.videoUrl && !videoCategories.includes(item.category);
+      // Strictly separate by videoUrl presence
+      if (mainTab === 'video') return !!item.videoUrl;
+      if (mainTab === 'photo') return !item.videoUrl;
       return false;
     });
 
