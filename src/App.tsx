@@ -707,7 +707,7 @@ function PortfolioSection() {
 
   // Define sub-categories for Photo and Video
   const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
-  const videoCategories = ['brand-video', 'travel-video', 'events-video', 'real-estate'];
+  const videoCategories = ['brand-video', 'travel-video', 'events-video'];
 
   // Filter items based on main tab and sub-filter
   const filteredItems = useMemo(() => {
@@ -725,7 +725,7 @@ function PortfolioSection() {
 
   // Sub-categories for the current main tab
   const availableSubCategories = useMemo(() => {
-    return mainTab === 'photo' ? photoCategories : videoCategories;
+    return mainTab === 'photo' ? photoCategories : [...videoCategories, 'real-estate'];
   }, [mainTab]);
 
   // Pagination Logic
