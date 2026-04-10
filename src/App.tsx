@@ -330,6 +330,8 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
   const { services, portfolioItems, testimonials } = useStore();
   const approvedTestimonials = testimonials.filter((t: Testimonial) => t.status === 'approved' || !t.status);
   const [expandedHomeDesc, setExpandedHomeDesc] = useState<string | null>(null);
+  const formatLabel = (slug: string) =>
+    slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const [parallaxOffset, setParallaxOffset] = useState(0);
 
   useEffect(() => {
@@ -586,11 +588,10 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                   />
                 )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
-                <div className="absolute inset-0 flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="text-white">
-                    <p className="font-medium">{item.title || 'Untitled'}</p>
-                    <p className="text-sm text-white/80">{item.client}</p>
-                  </div>
+                <div className="absolute top-0 left-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <Badge className="w-fit bg-[#cbb26a]/30 text-white border-0 text-xs">
+                    {formatLabel(item.category || 'photo')}
+                  </Badge>
                 </div>
               </div>
               </ScrollReveal>
@@ -834,13 +835,11 @@ function PortfolioSection() {
                   />
                   {/* Gradient at the top for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {/* Info overlay – positioned at the TOP */}
+                  {/* Info overlay – category tag only, no title */}
                   <div className="absolute top-0 left-0 right-0 flex flex-col p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Badge className="w-fit mb-2 bg-[#cbb26a]/30 text-white border-0">
-                      {item.category}
+                    <Badge className="w-fit bg-[#cbb26a]/30 text-white border-0">
+                      {formatLabel(item.category || 'photo')}
                     </Badge>
-                    <h3 className="text-white font-semibold text-lg">{item.title || 'Untitled'}</h3>
-                    <p className="text-white/80 text-sm">{item.client}</p>
                   </div>
                 </>
               )}
