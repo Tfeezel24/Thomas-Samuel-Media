@@ -470,7 +470,7 @@ export const portfolioService = {
 
 // ─── PORTFOLIO CATEGORIES SERVICE ─────────────────────────────────────────
 const CATEGORIES_DOC = 'portfolioCategories';
-const DEFAULT_CATEGORIES = ['fashion', 'headshots-and-portraits', 'food', 'events', 'events-photo', 'brand-video', 'travel-video', 'events-video', 'real-estate', 'bts'];
+const DEFAULT_CATEGORIES = ['fashion', 'headshots-and-portraits', 'food', 'events', 'brand-video', 'travel-video', 'events-video', 'real-estate', 'bts'];
 
 export const portfolioCategoriesService = {
     async getAll(): Promise<string[]> {

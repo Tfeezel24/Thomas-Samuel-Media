@@ -706,7 +706,7 @@ function PortfolioSection() {
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   // Define sub-categories for Photo and Video
-  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'events-photo', 'real-estate'];
+  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
   const videoCategories = ['brand-video', 'travel-video', 'events-video'];
 
   // Filter items based on main tab and sub-filter
