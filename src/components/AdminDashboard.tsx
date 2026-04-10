@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
     Calendar, Shield, Plus, Database, Edit, BarChart3, Users, User,
     Star, Trash2, Check,
@@ -426,6 +426,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
     const [activeTab, setActiveTab] = useState<'items' | 'categories'>('items');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const savedScrollY = useRef(0);
 
     const emptyForm = { title: '', category: categories[0] || 'real-estate', type: 'photo' as 'photo' | 'video', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false, sortOrder: 0 };
     const [form, setForm] = useState(emptyForm);
@@ -446,8 +447,9 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
         }
     };
 
-    const openCreate = () => { setForm({ ...emptyForm, category: categories[0] || '' }); setEditItem(null); setShowForm(true); };
+    const openCreate = () => { savedScrollY.current = window.scrollY; setForm({ ...emptyForm, category: categories[0] || '' }); setEditItem(null); setShowForm(true); };
     const openEdit = (item: PortfolioItem) => {
+        savedScrollY.current = window.scrollY;
         setForm({ title: item.title || '', category: item.category, type: item.type || (item.videoUrl ? 'video' : 'photo'), image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
         setEditItem(item); setShowForm(true);
     };
@@ -479,6 +481,10 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
                 await onCreate(data); 
             }
             setShowForm(false);
+            // Restore scroll position after modal closes
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: savedScrollY.current, behavior: 'instant' });
+            });
         } catch (error) {
             console.error('Save failed:', error);
             // Error is handled by the store's toast, but we keep the form open on failure

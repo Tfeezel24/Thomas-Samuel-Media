@@ -530,8 +530,8 @@ export const useStore = create<AppState>()(
       adminUpdatePortfolioItem: async (id, data) => {
         try {
           await portfolioService.update(id, data);
-          const updated = await portfolioService.getAll();
-          set({ portfolioItems: updated });
+          // Optimistic local update — avoids re-fetching all items which causes scroll-to-top
+          set(s => ({ portfolioItems: s.portfolioItems.map(p => p.id === id ? { ...p, ...data } : p) }));
           get().showToast('Portfolio item updated', 'success');
         } catch (error) {
           console.error('Update portfolio failed:', error);
