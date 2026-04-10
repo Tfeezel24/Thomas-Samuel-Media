@@ -324,7 +324,7 @@ function CarouselTab({ videos, onCreate, onUpdate, onDelete }: {
     const [uploading, setUploading] = useState(false);
 
     const openCreate = () => { setForm({ title: '', url: '', sortOrder: videos.length, isActive: true }); setEditItem(null); setShowForm(true); };
-    const openEdit = (v: CarouselVideo) => { setForm({ title: v.title, url: v.url, sortOrder: v.sortOrder, isActive: v.isActive }); setEditItem(v); setShowForm(true); };
+    const openEdit = (v: CarouselVideo) => { setForm({ title: v.title || '', url: v.url, sortOrder: v.sortOrder, isActive: v.isActive }); setEditItem(v); setShowForm(true); };
 
     const handleSave = async () => {
         if (!form.url) { alert('Video URL is required'); return; }
@@ -448,7 +448,7 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
 
     const openCreate = () => { setForm({ ...emptyForm, category: categories[0] || '' }); setEditItem(null); setShowForm(true); };
     const openEdit = (item: PortfolioItem) => {
-        setForm({ title: item.title, category: item.category, type: item.type || (item.videoUrl ? 'video' : 'photo'), image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
+        setForm({ title: item.title || '', category: item.category, type: item.type || (item.videoUrl ? 'video' : 'photo'), image: item.image, videoUrl: item.videoUrl || '', thumbnail: item.thumbnail, description: item.description, client: item.client || '', featured: item.featured, sortOrder: item.sortOrder || 0 });
         setEditItem(item); setShowForm(true);
     };
 
