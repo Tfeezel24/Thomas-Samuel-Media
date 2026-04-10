@@ -684,15 +684,10 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
         preload="auto"
       />
 
-      <div className="absolute top-0 left-0 right-0 flex flex-col px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)'
-        }}
-      >
-        <Badge className="w-fit mb-1 bg-[#cbb26a]/90 text-white border-0 text-xs">
-          {item.category}
+      <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+        <Badge className="w-fit bg-[#cbb26a]/90 text-white border-0 text-xs">
+          Video
         </Badge>
-        <h3 className="text-white font-semibold text-sm drop-shadow-md truncate">{item.title || 'Untitled'}</h3>
       </div>
     </div>
   );
@@ -711,8 +706,8 @@ function PortfolioSection() {
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   // Define sub-categories for Photo and Video
-  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
-  const videoCategories = ['brand-video', 'travel-video'];
+  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'events-photo', 'real-estate'];
+  const videoCategories = ['brand-video', 'travel-video', 'events-video'];
 
   // Filter items based on main tab and sub-filter
   const filteredItems = useMemo(() => {
