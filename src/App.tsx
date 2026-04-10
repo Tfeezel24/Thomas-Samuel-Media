@@ -707,7 +707,7 @@ function PortfolioSection() {
 
   // Define sub-categories for Photo and Video
   const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
-  const videoCategories = ['brand-video', 'travel-video', 'events-video'];
+  const videoCategories = ['brand-video', 'travel-video', 'events-video', 'real-estate'];
 
   // Filter items based on main tab and sub-filter
   const filteredItems = useMemo(() => {
