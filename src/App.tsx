@@ -7,7 +7,6 @@ import {
   Menu,
   X,
   ChevronRight,
-  Star,
   Check,
   Clock,
   MapPin,
@@ -696,7 +695,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
 
 // Portfolio Section
 function PortfolioSection() {
-  const [mainTab, setMainTab] = useState<'featured' | 'photo' | 'video'>('featured');
+  const [mainTab, setMainTab] = useState<'photo' | 'video'>('video');
   const [subFilter, setSubFilter] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState(12);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -712,10 +711,6 @@ function PortfolioSection() {
 
   // Filter items based on main tab and sub-filter
   const filteredItems = useMemo(() => {
-    if (mainTab === 'featured') {
-      return portfolioItems.filter((item: PortfolioItem) => item.featured);
-    }
-    
     const typeItems = portfolioItems.filter((item: PortfolioItem) => {
       // If item has explicit type, use it. Otherwise, infer from videoUrl or category.
       if (item.type) return item.type === mainTab;
@@ -730,7 +725,7 @@ function PortfolioSection() {
 
   // Sub-categories for the current main tab
   const availableSubCategories = useMemo(() => {
-    return mainTab === 'photo' ? photoCategories : mainTab === 'video' ? videoCategories : [];
+    return mainTab === 'photo' ? photoCategories : videoCategories;
   }, [mainTab]);
 
   // Pagination Logic
@@ -751,20 +746,17 @@ function PortfolioSection() {
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">Portfolio</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-            {mainTab === 'featured'
-              ? 'A Selection of recent projects that highlight our craftsmanship'
-              : mainTab === 'photo'
-                ? 'Professional photography across fashion, portraits, food, and more'
-                : 'Cinematic brand stories and travel films captured with precision'}
+            {mainTab === 'photo'
+              ? 'Professional photography across fashion, portraits, food, and more'
+              : 'Cinematic brand stories and travel films captured with precision'}
           </p>
         </div>
 
         {/* Main Tabs */}
         <div className="flex justify-center gap-4 mb-8">
           {[
-            { id: 'featured', label: 'Featured', icon: Star },
-            { id: 'photo', label: 'Photos', icon: ImageIcon },
             { id: 'video', label: 'Videos', icon: Video },
+            { id: 'photo', label: 'Photos', icon: ImageIcon },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -784,7 +776,7 @@ function PortfolioSection() {
         </div>
 
         {/* Sub-Filter Tabs */}
-        {mainTab !== 'featured' && availableSubCategories.length > 0 && (
+        {availableSubCategories.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-10 animate-in fade-in slide-in-from-top-2 duration-500">
             <button
               onClick={() => setSubFilter('all')}
