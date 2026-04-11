@@ -423,25 +423,47 @@ export const portfolioService = {
         return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
 
-    // Paginated fetch — returns items + the last document snapshot for cursor
+    // Paginated fetch — returns items + the last document snapshot for cursor.
+    // Keeps fetching batches until we collect `pageSize` matching items or exhaust all docs.
     async getPage(
         pageSize: number,
         cursor?: DocumentSnapshot | null,
         filterType?: 'photo' | 'video',
         filterCategory?: string
     ): Promise<{ items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
-        let q = query(collection(db, "portfolio"), orderBy("date", "desc"), limit(pageSize + 1));
-        if (cursor) q = query(collection(db, "portfolio"), orderBy("date", "desc"), startAfter(cursor), limit(pageSize + 1));
-        const snap = await getDocs(q);
-        const allDocs = snap.docs;
-        const hasMore = allDocs.length > pageSize;
-        const pageDocs = hasMore ? allDocs.slice(0, pageSize) : allDocs;
-        let items = pageDocs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
-        // Client-side filter for type/category since Firestore compound queries need composite indexes
-        if (filterType === 'video') items = items.filter(i => !!i.videoUrl);
-        if (filterType === 'photo') items = items.filter(i => !i.videoUrl);
-        if (filterCategory && filterCategory !== 'all') items = items.filter(i => i.category === filterCategory);
-        return { items, lastDoc: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null, hasMore };
+        const BATCH = Math.max(pageSize * 4, 100); // fetch larger batches to account for filtering
+        const collected: PortfolioItem[] = [];
+        let currentCursor: DocumentSnapshot | null = cursor ?? null;
+        let exhausted = false;
+        let lastPageDoc: DocumentSnapshot | null = null;
+
+        while (collected.length < pageSize && !exhausted) {
+            let q = query(collection(db, "portfolio"), orderBy("date", "desc"), limit(BATCH + 1));
+            if (currentCursor) {
+                q = query(collection(db, "portfolio"), orderBy("date", "desc"), startAfter(currentCursor), limit(BATCH + 1));
+            }
+            const snap = await getDocs(q);
+            const allDocs = snap.docs;
+            const batchHasMore = allDocs.length > BATCH;
+            const pageDocs = batchHasMore ? allDocs.slice(0, BATCH) : allDocs;
+
+            if (pageDocs.length === 0) { exhausted = true; break; }
+
+            let batchItems = pageDocs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+            // Client-side filter
+            if (filterType === 'video') batchItems = batchItems.filter(i => !!i.videoUrl);
+            if (filterType === 'photo') batchItems = batchItems.filter(i => !i.videoUrl);
+            if (filterCategory && filterCategory !== 'all') batchItems = batchItems.filter(i => i.category === filterCategory);
+
+            collected.push(...batchItems);
+            lastPageDoc = pageDocs[pageDocs.length - 1];
+            currentCursor = lastPageDoc;
+            if (!batchHasMore) { exhausted = true; }
+        }
+
+        const result = collected.slice(0, pageSize);
+        const hasMore = !exhausted || collected.length > pageSize;
+        return { items: result, lastDoc: lastPageDoc, hasMore: !exhausted };
     },
 
     async getFeatured(): Promise<PortfolioItem[]> {
