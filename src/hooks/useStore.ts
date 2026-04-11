@@ -86,6 +86,7 @@ interface DataState {
 
   // Actions
   loadPublicData: () => Promise<void>;
+  loadPortfolioData: () => Promise<void>;
   loadPortalData: (clientId: string) => Promise<void>;
   loadAdminData: () => Promise<void>;
   refreshData: () => void;
@@ -274,11 +275,12 @@ export const useStore = create<AppState>()(
         if (get().dataLoading) return;
         set({ dataLoading: true });
         try {
-          const [svcs, addons, portfolio, cats, testis, activeVideos] = await Promise.all([
+          // Portfolio items are NOT loaded here — they are fetched on-demand
+          // by the PortfolioSection component using cursor-based pagination.
+          // This keeps the homepage fast.
+          const [svcs, addons, testis, activeVideos] = await Promise.all([
             servicesService.getAll(),
             addOnsService.getAll(),
-            portfolioService.getAll(),
-            portfolioCategoriesService.getAll(),
             testimonialsService.getAll(),
             carouselVideosService.getActive(),
           ]);
@@ -286,14 +288,11 @@ export const useStore = create<AppState>()(
           set({
             services: svcs,
             addOns: addons,
-            portfolioItems: portfolio,
-            portfolioCategories: cats,
             testimonials: testis,
             carouselVideos: activeVideos,
             dataLoaded: true,
             dataLoading: false,
           });
-
 
         } catch (error) {
           console.error('Failed to load public data:', error);

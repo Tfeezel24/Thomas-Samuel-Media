@@ -43,7 +43,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useStore, useAuth, useBooking } from '@/hooks/useStore';
 import { formatPrice, formatDate, formatTime } from '@/data/mockData';
-import { authService, contactMessagesService, bookingsService } from '@/lib/firebaseService';
+import { authService, contactMessagesService, bookingsService, portfolioService } from '@/lib/firebaseService';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 import { AdminDashboard } from '@/components/AdminDashboard';
@@ -644,49 +644,73 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
   );
 }
 
-// Portfolio Video Component
+// Portfolio Video Component — lazy loads only when scrolled into viewport
 function PortfolioVideo({ item }: { item: PortfolioItem }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
 
+  // Only load the video when it enters the viewport
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleLoadedData = () => {
-      video.play().catch(() => { });
-    };
-
-    video.addEventListener('loadeddata', handleLoadedData);
-    // If already loaded, play immediately
-    if (video.readyState >= 2) {
-      video.play().catch(() => { });
-    }
-
-    return () => {
-      video.removeEventListener('loadeddata', handleLoadedData);
-    };
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
-  return (
-    <div
-      className="w-full h-full relative bg-black overflow-hidden"
-    >
-      <video
-        ref={videoRef}
-        src={item.videoUrl}
-        poster={item.thumbnail}
-        className="w-full h-full object-cover"
-        autoPlay
-        loop
-        playsInline
-        muted
-        controls
-        preload="auto"
-      />
+  // Play once loaded
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !inView) return;
+    const play = () => video.play().catch(() => {});
+    if (video.readyState >= 2) {
+      play();
+    } else {
+      video.addEventListener('loadeddata', play, { once: true });
+    }
+  }, [inView]);
 
+  const formatLabel = (slug: string) =>
+    slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative bg-black overflow-hidden">
+      {/* Show thumbnail placeholder until in viewport */}
+      {!inView && (
+        <img
+          src={item.thumbnail || item.image}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+      {/* Only mount video element when in viewport */}
+      {inView && (
+        <video
+          ref={videoRef}
+          src={item.videoUrl}
+          poster={item.thumbnail || item.image}
+          className="w-full h-full object-cover"
+          loop
+          playsInline
+          muted
+          controls
+          preload="none"
+        />
+      )}
       <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
         <Badge className="w-fit bg-[#cbb26a]/90 text-white border-0 text-xs">
-          Video
+          {item.category ? formatLabel(item.category) : 'Video'}
         </Badge>
       </div>
     </div>
@@ -694,12 +718,20 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
 }
 
 // Portfolio Section
+const PAGE_SIZE = 24;
+
 function PortfolioSection() {
   const [mainTab, setMainTab] = useState<'photo' | 'video'>('video');
   const [subFilter, setSubFilter] = useState<string>('all');
-  const [visibleCount, setVisibleCount] = useState(12);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const { portfolioItems, portfolioCategories } = useStore();
+
+  // Paginated state — independent of global store
+  const [displayedItems, setDisplayedItems] = useState<PortfolioItem[]>([]);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Format slug label: 'real-estate' → 'Real Estate'
   const formatLabel = (slug: string) =>
@@ -709,35 +741,58 @@ function PortfolioSection() {
   const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
   const videoCategories = ['brand-video', 'travel-video', 'events-video'];
 
-  // Filter items based on main tab and sub-filter
-  const filteredItems = useMemo(() => {
-    const typeItems = portfolioItems.filter((item: PortfolioItem) => {
-      // Strictly separate by videoUrl presence
-      if (mainTab === 'video') return !!item.videoUrl;
-      if (mainTab === 'photo') return !item.videoUrl;
-      return false;
-    });
-
-    if (subFilter === 'all') return typeItems;
-    return typeItems.filter((item: PortfolioItem) => item.category === subFilter);
-  }, [mainTab, subFilter, portfolioItems]);
-
   // Sub-categories for the current main tab
-  const availableSubCategories = useMemo(() => {
-    return mainTab === 'photo' ? photoCategories : [...videoCategories, 'real-estate'];
-  }, [mainTab]);
+  const availableSubCategories = mainTab === 'photo' ? photoCategories : [...videoCategories, 'real-estate'];
 
-  // Pagination Logic
-  const displayedItems = filteredItems.slice(0, visibleCount);
-
-  const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 12);
-  };
-
-  // Reset pagination when filter changes
+  // Load the first page whenever tab or filter changes
   useEffect(() => {
-    setVisibleCount(12);
+    let cancelled = false;
+    setInitialLoading(true);
+    setDisplayedItems([]);
+    setLastDoc(null);
+    setHasMore(true);
+    portfolioService.getPage(PAGE_SIZE, null, mainTab, subFilter === 'all' ? undefined : subFilter)
+      .then(({ items, lastDoc: ld, hasMore: hm }) => {
+        if (cancelled) return;
+        setDisplayedItems(items);
+        setLastDoc(ld);
+        setHasMore(hm);
+        setInitialLoading(false);
+      })
+      .catch(() => { if (!cancelled) setInitialLoading(false); });
+    return () => { cancelled = true; };
   }, [mainTab, subFilter]);
+
+  // Load next page
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !lastDoc) return;
+    setLoadingMore(true);
+    try {
+      const { items, lastDoc: ld, hasMore: hm } = await portfolioService.getPage(
+        PAGE_SIZE, lastDoc, mainTab, subFilter === 'all' ? undefined : subFilter
+      );
+      setDisplayedItems(prev => {
+        const ids = new Set(prev.map(i => i.id));
+        return [...prev, ...items.filter(i => !ids.has(i.id))];
+      });
+      setLastDoc(ld);
+      setHasMore(hm);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, lastDoc, mainTab, subFilter]);
+
+  // IntersectionObserver sentinel for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore(); },
+      { rootMargin: '400px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   return (
     <div className="min-h-screen pt-20 pb-20 px-4">
@@ -801,55 +856,63 @@ function PortfolioSection() {
           </div>
         )}
 
-        {/* Gallery */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedItems.map((item: PortfolioItem) => (
-            <div
-              key={item.id}
-              className="group relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer bg-black/5"
-              onClick={() => {
-                if (!item.videoUrl) {
-                  setSelectedImage(item.image);
-                }
-              }}
-            >
-              {item.videoUrl ? (
-                <PortfolioVideo item={item} />
-              ) : (
-                <>
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Gradient at the top for text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {/* Info overlay – category tag only, no title */}
-                  <div className="absolute top-0 left-0 right-0 flex flex-col p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Badge className="w-fit bg-[#cbb26a]/30 text-white border-0">
-                      {formatLabel(item.category || 'photo')}
-                    </Badge>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Load More Button */}
-        {visibleCount < filteredItems.length && (
-          <div className="text-center mt-12">
-            <Button
-              onClick={handleLoadMore}
-              variant="outline"
-              className="border-[#cbb26a] text-[#8f5e25] hover:bg-[#cbb26a]/10 min-w-[200px]"
-            >
-              Load More Work
-            </Button>
+        {/* Initial loading skeleton */}
+        {initialLoading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[4/3] rounded-lg bg-white/5 animate-pulse" />
+            ))}
           </div>
         )}
+
+        {/* Gallery */}
+        {!initialLoading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayedItems.map((item: PortfolioItem) => (
+              <div
+                key={item.id}
+                className="group relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer bg-black/5"
+                onClick={() => {
+                  if (!item.videoUrl) {
+                    setSelectedImage(item.image);
+                  }
+                }}
+              >
+                {item.videoUrl ? (
+                  <PortfolioVideo item={item} />
+                ) : (
+                  <>
+                    <img
+                      src={item.image}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {/* Gradient at the top for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Info overlay – category tag only, no title */}
+                    <div className="absolute top-0 left-0 right-0 flex flex-col p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Badge className="w-fit bg-[#cbb26a]/30 text-white border-0">
+                        {formatLabel(item.category || 'photo')}
+                      </Badge>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Infinite scroll sentinel + loading spinner */}
+        <div ref={sentinelRef} className="h-10 mt-8 flex items-center justify-center">
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-[#cbb26a]/60 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading more…
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Full Image Modal */}

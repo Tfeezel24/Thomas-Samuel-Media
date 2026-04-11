@@ -10,9 +10,11 @@ import {
     where,
     orderBy,
     limit,
+    startAfter,
     Timestamp,
     serverTimestamp,
     setDoc,
+    type DocumentSnapshot,
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import {
@@ -419,6 +421,27 @@ export const portfolioService = {
         );
         const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
         return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
+    },
+
+    // Paginated fetch — returns items + the last document snapshot for cursor
+    async getPage(
+        pageSize: number,
+        cursor?: DocumentSnapshot | null,
+        filterType?: 'photo' | 'video',
+        filterCategory?: string
+    ): Promise<{ items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
+        let q = query(collection(db, "portfolio"), orderBy("date", "desc"), limit(pageSize + 1));
+        if (cursor) q = query(collection(db, "portfolio"), orderBy("date", "desc"), startAfter(cursor), limit(pageSize + 1));
+        const snap = await getDocs(q);
+        const allDocs = snap.docs;
+        const hasMore = allDocs.length > pageSize;
+        const pageDocs = hasMore ? allDocs.slice(0, pageSize) : allDocs;
+        let items = pageDocs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        // Client-side filter for type/category since Firestore compound queries need composite indexes
+        if (filterType === 'video') items = items.filter(i => !!i.videoUrl);
+        if (filterType === 'photo') items = items.filter(i => !i.videoUrl);
+        if (filterCategory && filterCategory !== 'all') items = items.filter(i => i.category === filterCategory);
+        return { items, lastDoc: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null, hasMore };
     },
 
     async getFeatured(): Promise<PortfolioItem[]> {
