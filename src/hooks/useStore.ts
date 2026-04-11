@@ -300,6 +300,11 @@ export const useStore = create<AppState>()(
         }
       },
 
+      loadPortfolioData: async () => {
+        // No-op: portfolio data is fetched on-demand by PortfolioSection
+        // using cursor-based pagination via portfolioService.getPage()
+      },
+
       loadPortalData: async (userId: string) => {
         try {
           // Resolve correct client ID: Check if user has a dedicated client doc
