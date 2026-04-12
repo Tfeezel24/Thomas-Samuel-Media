@@ -20,10 +20,11 @@ export default defineConfig({
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
   server: {
-    // Required for FFmpeg.wasm SharedArrayBuffer support in dev mode
+    // credentialless COEP allows cross-origin resources (Firebase Storage images/videos)
+    // while still enabling SharedArrayBuffer for FFmpeg.wasm
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
     },
   },
 });
