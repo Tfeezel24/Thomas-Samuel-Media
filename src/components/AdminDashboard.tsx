@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth, useAdmin } from '@/hooks/useStore';
 import { storageService } from '@/lib/firebaseService';
+import { compressVideo, type CompressionProgress } from '@/lib/videoCompressor';
 import { formatPrice, formatDate } from '@/data/mockData';
 import type {
     Service, AddOn, PortfolioItem, Testimonial, Booking, Client, CarouselVideo, ContactMessage, ServiceTabCategory,
@@ -430,19 +431,49 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
     const emptyForm = { title: '', category: categories[0] || 'real-estate', type: 'photo' as 'photo' | 'video', image: '', videoUrl: '', thumbnail: '', description: '', client: '', featured: false, sortOrder: 0 };
     const [form, setForm] = useState(emptyForm);
     const [uploading, setUploading] = useState(false);
+    const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
+    const [compressionStats, setCompressionStats] = useState<{ originalMB: number; compressedMB: number; ratio: number } | null>(null);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'videoUrl' | 'thumbnail', path: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(true);
+        setCompressionStats(null);
+
         try {
-            const url = await storageService.uploadFile(file, path);
-            setForm(prev => ({ ...prev, [field]: url }));
+            // Auto-compress video files before uploading
+            if (field === 'videoUrl' && file.type.startsWith('video/')) {
+                setCompressionProgress({ stage: 'loading', progress: 0, message: 'Loading video processor…' });
+
+                const result = await compressVideo(file, (p) => {
+                    setCompressionProgress(p);
+                });
+
+                setCompressionStats({
+                    originalMB: result.originalSizeMB,
+                    compressedMB: result.compressedSizeMB,
+                    ratio: result.compressionRatio,
+                });
+
+                // Upload the compressed MP4
+                const videoUrl = await storageService.uploadFile(result.videoFile, path);
+                setForm(prev => ({ ...prev, [field]: videoUrl }));
+
+                // Auto-populate thumbnail if not already set
+                if (!form.thumbnail) {
+                    const thumbUrl = await storageService.uploadFile(result.thumbnailFile, 'portfolio/thumbnails');
+                    setForm(prev => ({ ...prev, thumbnail: thumbUrl }));
+                }
+            } else {
+                const url = await storageService.uploadFile(file, path);
+                setForm(prev => ({ ...prev, [field]: url }));
+            }
         } catch (err) {
             console.error(err);
-            alert('Upload failed');
+            alert('Upload failed. Please try again.');
         } finally {
             setUploading(false);
+            setCompressionProgress(null);
         }
     };
 
@@ -682,10 +713,53 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
                         <Input value={form.thumbnail} onChange={e => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://..." />
                     </div>
 
-                    <div><Label>Video (Optional)</Label>
+                    <div>
+                        <Label>Video (Optional)</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                            Videos are automatically compressed to web-optimized MP4 and a thumbnail is generated.
+                        </p>
                         <div className="flex gap-2 items-center mb-2">
-                            <Input type="file" accept="video/*" onChange={(e) => handleUpload(e, 'videoUrl', 'portfolio/videos')} disabled={uploading} />
+                            <Input
+                                type="file"
+                                accept="video/*"
+                                onChange={(e) => handleUpload(e, 'videoUrl', 'portfolio/videos')}
+                                disabled={uploading}
+                            />
+                            {uploading && compressionProgress && (
+                                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 text-[#cbb26a]" />
+                            )}
                         </div>
+
+                        {/* Compression progress bar */}
+                        {compressionProgress && (
+                            <div className="mb-3 p-3 rounded-lg border border-[#cbb26a]/30 bg-[#cbb26a]/5">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-xs font-medium text-[#cbb26a]">{compressionProgress.message}</span>
+                                    <span className="text-xs text-muted-foreground">{compressionProgress.progress}%</span>
+                                </div>
+                                <div className="w-full bg-border rounded-full h-1.5">
+                                    <div
+                                        className="bg-[#cbb26a] h-1.5 rounded-full transition-all duration-300"
+                                        style={{ width: `${compressionProgress.progress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Compression result stats */}
+                        {compressionStats && !compressionProgress && (
+                            <div className="mb-3 p-3 rounded-lg border border-green-500/30 bg-green-500/5 flex items-center gap-3">
+                                <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <div className="text-xs text-muted-foreground">
+                                    <span className="text-foreground font-medium">Compressed & ready: </span>
+                                    {compressionStats.originalMB.toFixed(1)} MB
+                                    {' → '}
+                                    <span className="text-green-600 font-medium">{compressionStats.compressedMB.toFixed(1)} MB</span>
+                                    {' '}({Math.round((1 - compressionStats.ratio) * 100)}% smaller)
+                                </div>
+                            </div>
+                        )}
+
                         <Input value={form.videoUrl} onChange={e => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
                         {form.videoUrl && (
                             <div className="mt-2 rounded-lg overflow-hidden border border-border bg-black/5">
