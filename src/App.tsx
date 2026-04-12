@@ -671,115 +671,134 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [inView, setInView] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Only load the video when it enters the viewport
+  // Two-stage IntersectionObserver:
+  // 1. Preload trigger: 400px before entering viewport — mounts the video element with preload="auto"
+  // 2. Visibility trigger: when actually visible — plays/pauses the video
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
+
+    // Stage 1: preload when near viewport
+    const preloadObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setInView(true);
-          observer.disconnect();
+          preloadObserver.disconnect();
         }
       },
       { rootMargin: '400px' }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+
+    // Stage 2: play/pause based on actual visibility
+    const playObserver = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { rootMargin: '0px', threshold: 0.25 }
+    );
+
+    preloadObserver.observe(el);
+    playObserver.observe(el);
+    return () => {
+      preloadObserver.disconnect();
+      playObserver.disconnect();
+    };
   }, []);
 
-  // Play once loaded and handle buffering states
+  // Handle play/pause based on visibility
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !inView) return;
 
-    const play = () => {
+    const onCanPlay = () => {
+      setIsReady(true);
       setIsBuffering(false);
-      video.play().catch(() => {});
     };
     const onWaiting = () => setIsBuffering(true);
     const onPlaying = () => setIsBuffering(false);
-    const onCanPlay = () => { setIsBuffering(false); };
     const onError = () => { setHasError(true); setIsBuffering(false); };
 
+    video.addEventListener('canplay', onCanPlay, { once: true });
     video.addEventListener('waiting', onWaiting);
     video.addEventListener('playing', onPlaying);
-    video.addEventListener('canplay', onCanPlay);
     video.addEventListener('error', onError);
 
-    if (video.readyState >= 3) {
-      play();
-    } else {
-      setIsBuffering(true);
-      video.addEventListener('canplay', play, { once: true });
-    }
-
     return () => {
+      video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('waiting', onWaiting);
       video.removeEventListener('playing', onPlaying);
-      video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('error', onError);
     };
   }, [inView]);
+
+  // Play when visible and ready, pause when scrolled away
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !inView) return;
+    if (isVisible) {
+      if (video.readyState >= 3) {
+        video.play().catch(() => {});
+      } else {
+        setIsBuffering(true);
+        const onReady = () => { video.play().catch(() => {}); };
+        video.addEventListener('canplay', onReady, { once: true });
+        return () => video.removeEventListener('canplay', onReady);
+      }
+    } else {
+      video.pause();
+    }
+  }, [isVisible, inView]);
 
   const formatLabel = (slug: string) =>
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   return (
     <div ref={containerRef} className="w-full h-full relative bg-black overflow-hidden">
-      {/* Thumbnail shown until video is in viewport */}
-      {!inView && (
+      {/* Thumbnail shown until video is preloaded and ready */}
+      {(!inView || !isReady) && !hasError && (
         <img
           src={item.thumbnail || item.image}
           alt=""
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover z-10"
           loading="lazy"
           decoding="async"
         />
       )}
-      {/* Video element — only mounted when in viewport */}
-      {inView && (
-        <>
-          {/* Poster image stays visible while video buffers */}
-          {isBuffering && !hasError && (
-            <img
-              src={item.thumbnail || item.image}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover z-10"
-            />
-          )}
-          {/* Buffering spinner */}
-          {isBuffering && !hasError && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full border-2 border-[#cbb26a]/40 border-t-[#cbb26a] animate-spin" />
-            </div>
-          )}
-          {/* Error fallback */}
-          {hasError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-2">
-              <img
-                src={item.thumbnail || item.image}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-40"
-              />
-              <Play className="w-10 h-10 text-[#cbb26a] relative z-10" />
-            </div>
-          )}
-          <video
-            ref={videoRef}
-            src={item.videoUrl}
-            poster={item.thumbnail || item.image}
-            className="w-full h-full object-cover"
-            loop
-            playsInline
-            muted
-            controls
-            preload="metadata"
+      {/* Buffering spinner — only shown when in view but not yet ready */}
+      {inView && isVisible && !isReady && !hasError && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-2 border-[#cbb26a]/40 border-t-[#cbb26a] animate-spin" />
+        </div>
+      )}
+      {/* Error fallback */}
+      {hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-2">
+          <img
+            src={item.thumbnail || item.image}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
-        </>
+          <Play className="w-10 h-10 text-[#cbb26a] relative z-10" />
+        </div>
+      )}
+      {/* Video element — mounted as soon as near viewport, preloads aggressively */}
+      {inView && !hasError && (
+        <video
+          ref={videoRef}
+          src={item.videoUrl}
+          poster={item.thumbnail || item.image}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+          loop
+          playsInline
+          muted
+          controls
+          preload="auto"
+        />
       )}
       <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
         <Badge className="w-fit bg-[#cbb26a]/90 text-white border-0 text-xs">
@@ -797,7 +816,6 @@ function PortfolioSection() {
   const [mainTab, setMainTab] = useState<'photo' | 'video'>('video');
   const [subFilter, setSubFilter] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   // Paginated state — independent of global store
   const [displayedItems, setDisplayedItems] = useState<PortfolioItem[]>([]);
   const [lastDoc, setLastDoc] = useState<any>(null);
@@ -805,17 +823,13 @@ function PortfolioSection() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const sentinelRef = useRef<HTMLDivElement>(null);
-
+  // Dynamic categories from Firestore (same source as admin dashboard)
+  const { portfolioCategories } = useStore();
   // Format slug label: 'real-estate' → 'Real Estate'
   const formatLabel = (slug: string) =>
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-  // Define sub-categories for Photo and Video
-  const photoCategories = ['fashion', 'headshots-and-portraits', 'food', 'events', 'real-estate'];
-  const videoCategories = ['brand-video', 'travel-video', 'events-video'];
-
-  // Sub-categories for the current main tab
-  const availableSubCategories = mainTab === 'photo' ? photoCategories : [...videoCategories, 'real-estate'];
+  // Use all Firestore categories as sub-filter tabs (hidden categories with 0 items are filtered server-side)
+  const availableSubCategories = portfolioCategories.filter(c => c !== 'video');
 
   // Load the first page whenever tab or filter changes
   useEffect(() => {

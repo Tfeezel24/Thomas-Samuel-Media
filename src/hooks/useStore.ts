@@ -278,11 +278,12 @@ export const useStore = create<AppState>()(
           // Portfolio items are NOT loaded here — they are fetched on-demand
           // by the PortfolioSection component using cursor-based pagination.
           // This keeps the homepage fast.
-          const [svcs, addons, testis, activeVideos] = await Promise.all([
+          const [svcs, addons, testis, activeVideos, portfolioCats] = await Promise.all([
             servicesService.getAll(),
             addOnsService.getAll(),
             testimonialsService.getAll(),
             carouselVideosService.getActive(),
+            portfolioCategoriesService.getAll(),
           ]);
 
           set({
@@ -290,6 +291,7 @@ export const useStore = create<AppState>()(
             addOns: addons,
             testimonials: testis,
             carouselVideos: activeVideos,
+            portfolioCategories: portfolioCats,
             dataLoaded: true,
             dataLoading: false,
           });
