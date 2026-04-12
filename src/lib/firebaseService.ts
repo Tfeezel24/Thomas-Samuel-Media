@@ -55,6 +55,24 @@ function convertTimestamps(data: Record<string, any>): Record<string, any> {
     return result;
 }
 
+/**
+ * Normalizes a raw Firestore portfolio document to match the PortfolioItem shape.
+ * Handles legacy bulk-imported docs that stored the image URL in 'url' instead of 'image',
+ * and normalizes type='image' to type='photo'.
+ */
+function normalizePortfolioDoc(data: Record<string, any>): Record<string, any> {
+    const d = { ...data };
+    // Map legacy 'url' field → 'image' when 'image' is empty
+    if (!d.image && d.url) {
+        d.image = d.url;
+    }
+    // Normalize type='image' → type='photo'
+    if (d.type === 'image') {
+        d.type = 'photo';
+    }
+    return d;
+}
+
 // ─── AUTH SERVICE ──────────────────────────────────────────────────────────
 export const authService = {
     // Sign up new user
@@ -419,7 +437,7 @@ export const portfolioService = {
         // No orderBy here — avoids requiring a Firestore composite index.
         // Sorting is done client-side by sortOrder after fetch.
         const snap = await getDocs(collection(db, "portfolio"));
-        const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        const items = snap.docs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
         return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
 
@@ -449,10 +467,11 @@ export const portfolioService = {
 
             if (pageDocs.length === 0) { exhausted = true; break; }
 
-            let batchItems = pageDocs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+            let batchItems = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
             // Client-side filter
             if (filterType === 'video') batchItems = batchItems.filter(i => !!i.videoUrl);
-            if (filterType === 'photo') batchItems = batchItems.filter(i => !i.videoUrl);
+            // Photos: no videoUrl, but must have an image (skip truly empty/broken items)
+            if (filterType === 'photo') batchItems = batchItems.filter(i => !i.videoUrl && !!i.image);
             if (filterCategory && filterCategory !== 'all') batchItems = batchItems.filter(i => i.category === filterCategory);
 
             collected.push(...batchItems);
@@ -474,7 +493,7 @@ export const portfolioService = {
                 orderBy("date", "desc")
             )
         );
-        const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
+        const items = snap.docs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
         return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
 
