@@ -394,56 +394,78 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Our Packages</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Real estate media packages tailored to every property size
+                Photo and video packages for real estate, brands, social media, events, and hospitality
               </p>
             </div>
           </ScrollReveal>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {services.slice(0, 3).map((service: Service, index: number) => (
-              <ScrollReveal key={service.id} delay={index * 150}>
-              <Card className="group cursor-pointer gold-border card-pop-glow overflow-hidden !pt-0 !gap-0">
-                <div className="aspect-[16/10] overflow-hidden">
-                  <img
-                    src={service.image}
-                    alt={service.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <CardHeader className="pt-4">
-                  <CardTitle className="text-lg">{service.name}</CardTitle>
-                  <CardDescription
-                    className={`cursor-pointer transition-all ${expandedHomeDesc === service.id ? '' : 'line-clamp-2'}`}
-                    onClick={(e) => { e.stopPropagation(); setExpandedHomeDesc(expandedHomeDesc === service.id ? null : service.id); }}
-                  >
-                    {service.description}
-                  </CardDescription>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setExpandedHomeDesc(expandedHomeDesc === service.id ? null : service.id); }}
-                    className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-1 transition-colors"
-                  >
-                    {expandedHomeDesc === service.id ? 'Show less' : 'Read more'}
-                    <ChevronDown className={`w-3 h-3 transition-transform ${expandedHomeDesc === service.id ? 'rotate-180' : ''}`} />
-                  </button>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-[#8f5e25]">{formatPrice(service.basePrice)}</span>
-                    <span className="text-xs text-muted-foreground">starting from</span>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                id: 'home-re',
+                name: 'Real Estate',
+                description: 'Cinematic photo, video, and drone packages crafted for luxury agents, builders, and developers.',
+                image: services[0]?.image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80',
+                price: services[0] ? formatPrice(services[0].basePrice) : 'From $299',
+                tab: 'real-estate',
+              },
+              {
+                id: 'home-bc',
+                name: 'Brand & Commercial',
+                description: 'Elevated visual storytelling for founders, product launches, campaigns, and lifestyle marketing.',
+                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+                price: 'From $1,250',
+                tab: 'brand-commercial',
+              },
+              {
+                id: 'home-sc',
+                name: 'Social & Content',
+                description: 'Scroll-stopping content for Instagram, TikTok, paid social, and professional headshots.',
+                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/social-media-shoot-LyWfbX4SNNFrDSig4zpQy8.webp',
+                price: 'From $395',
+                tab: 'social-content',
+              },
+              {
+                id: 'home-eh',
+                name: 'Events & Hospitality',
+                description: 'Refined coverage for events, hotel & Airbnb listings, and high-end food and beverage brands.',
+                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/event-coverage-AYkaFGXnTk26ENBKv7bUHz.webp',
+                price: 'From $850',
+                tab: 'events-hospitality',
+              },
+            ].map((cat, index) => (
+              <ScrollReveal key={cat.id} delay={index * 150}>
+                <Card className="group cursor-pointer gold-border card-pop-glow overflow-hidden !pt-0 !gap-0" onClick={() => setView('services')}>
+                  <div className="aspect-[16/10] overflow-hidden">
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant="outline"
-                    className="w-full border-[#cbb26a] text-[#8f5e25] hover:bg-[#cbb26a]/20"
-                    onClick={() => setView('services')}
-                  >
-                    Learn More
-                  </Button>
-                </CardFooter>
-              </Card>
+                  <CardHeader className="pt-4 pb-2">
+                    <CardTitle className="text-lg">{cat.name}</CardTitle>
+                    <CardDescription className="line-clamp-2 text-sm">
+                      {cat.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#8f5e25]">{cat.price}</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#cbb26a] text-[#8f5e25] hover:bg-[#cbb26a]/20"
+                      onClick={(e) => { e.stopPropagation(); setView('services'); }}
+                    >
+                      View Packages
+                    </Button>
+                  </CardFooter>
+                </Card>
               </ScrollReveal>
             ))}
           </div>
@@ -942,11 +964,125 @@ function PortfolioSection() {
   );
 }
 
+// ─── New Service Package Data (non-real-estate categories) ───────────────────
+const NEW_SERVICE_TABS = [
+  {
+    id: 'brand-commercial',
+    label: 'Brand & Commercial',
+    sections: [
+      {
+        title: 'Brand & Promotional Photography',
+        description: 'Elevated visual storytelling for founders, teams, service businesses, launches, and lifestyle-driven marketing.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+        packages: [
+          { name: 'Basic', price: '$1,250*', badge: '', includes: ['Up to 2 hours', '1 location or setup', '20 edited images'] },
+          { name: 'Standard', price: '$2,200*', badge: 'Most Popular', includes: ['Up to 4 hours', 'Up to 2 locations or multiple setups', '40 edited images', '1 edited vertical reel'] },
+          { name: 'Full Service', price: '$3,800*', badge: '', includes: ['Up to 8 hours', 'Multiple scenes and creative variations', '60+ edited images', '2 edited vertical reels', 'Pre-production planning'] },
+        ],
+      },
+      {
+        title: 'Product Photography',
+        description: 'Clean, elevated product imagery for e-commerce, launches, ads, and brand storytelling.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/product-photography-mqV6ZuVThDE5XL28KZL6Rw.webp',
+        packages: [
+          { name: 'Basic', price: '$1,250*', badge: '', includes: ['Half-day shoot', 'Simple styling and clean setup', 'Up to 15 final edited images', 'Basic retouching'] },
+          { name: 'Standard', price: '$2,400*', badge: 'Most Popular', includes: ['Full-day shoot', 'Multiple setups, angles, and variations', 'Up to 30 final edited images', 'Advanced retouching'] },
+          { name: 'Full Service', price: '$3,600*', badge: '', includes: ['Full-day production with expanded creative direction', 'Styled scenes and multiple concepts', 'Up to 45 final edited images', 'Ideal for launches, campaigns, and larger product lines'] },
+        ],
+      },
+      {
+        title: 'Brand Campaign Day Rates',
+        description: 'For larger commercial productions, ad campaigns, product launches, and multi-deliverable shoots.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+        packages: [
+          { name: 'Half-Day Campaign Rate', price: '$2,500*', badge: '', includes: ['Up to 4 hours production', 'Creative direction', 'Photo or hybrid photo/video capture'] },
+          { name: 'Full-Day Campaign Rate', price: '$4,500*', badge: 'Most Popular', includes: ['Up to 8 hours production', 'Creative direction and shot planning', 'Photo or hybrid photo/video capture', 'Best for launches and multi-platform campaigns'] },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'social-content',
+    label: 'Social & Content',
+    sections: [
+      {
+        title: 'Social Media Content Shoots',
+        description: 'Built for brands that need scroll-stopping content for Instagram, TikTok, paid social, and web.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/social-media-shoot-LyWfbX4SNNFrDSig4zpQy8.webp',
+        packages: [
+          { name: 'Basic', price: '$1,250*', badge: '', includes: ['Up to 4 hours on-site', '1 location', '1 edited vertical reel', '20 edited photo selects', 'Light creative direction and shot planning', 'Organic social and web use'] },
+          { name: 'Standard', price: '$2,200*', badge: 'Most Popular', includes: ['Up to 8 hours on-site', 'Up to 2 locations or multiple setups', '2 edited vertical reels', '40 edited photo selects', 'Expanded creative direction', 'Organic social and web use'] },
+          { name: 'Full Service', price: '$3,250*', badge: '', includes: ['Full-day production coverage', 'Up to 3 edited vertical reels', '60 edited photo selects', 'Pre-production planning', 'Priority editing workflow', 'Best for launches and campaign-style social content'] },
+        ],
+      },
+      {
+        title: 'Headshots, Portraits & Studio Photography',
+        description: 'Professional, polished imagery for founders, teams, talent, and personal brands.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/headshot-portrait-6kNVZzXmWWSMjfAgvPBTGc.webp',
+        packages: [
+          { name: 'Basic', price: '$395*', badge: '', includes: ['Up to 30 minutes', '1 look', '1 retouched final image', 'Private proof gallery'] },
+          { name: 'Standard', price: '$695*', badge: 'Most Popular', includes: ['Up to 60 minutes', '2 looks', '3 retouched final images', 'Private proof gallery', 'More variety in posing and framing'] },
+          { name: 'Full Service', price: '$1,195*', badge: '', includes: ['Up to 90 minutes', '3 to 4 looks', '6 retouched final images', 'Creative direction throughout session', 'Priority turnaround'] },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'events-hospitality',
+    label: 'Events & Hospitality',
+    sections: [
+      {
+        title: 'Event Coverage',
+        description: 'Refined event photography for launches, private gatherings, corporate events, dinners, and brand activations.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/event-coverage-AYkaFGXnTk26ENBKv7bUHz.webp',
+        packages: [
+          { name: 'Basic', price: '$850*', badge: '', includes: ['Up to 2 hours of coverage', '50+ edited images', 'Online gallery delivery'] },
+          { name: 'Standard', price: '$1,450*', badge: 'Most Popular', includes: ['Up to 4 hours of coverage', '125+ edited images', 'Online gallery delivery', 'Ideal for brand events, dinners, and networking events'] },
+          { name: 'Full Service', price: '$2,650*', badge: '', includes: ['Up to 8 hours of coverage', '250+ edited images', '24-hour preview selects', 'Full event storytelling coverage'] },
+        ],
+      },
+      {
+        title: 'Hotel & Airbnb Photography',
+        description: 'Hospitality-focused imagery designed to elevate bookings, listings, websites, and brand perception.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/hotel-airbnb-JB99TXMwfTH4d66P6S99VW.webp',
+        packages: [
+          { name: 'Basic', price: '$850*', badge: '', includes: ['20 edited images', 'Interior and exterior coverage', 'Ideal for smaller properties or listing refreshes'] },
+          { name: 'Standard', price: '$1,450*', badge: 'Most Popular', includes: ['35 edited images', 'Interior, exterior, and detail shots', 'Ideal for stronger listing and website presentation'] },
+          { name: 'Full Service', price: '$2,400*', badge: '', includes: ['50+ edited images', 'Interior, exterior, amenities, and detail shots', 'Drone and twilight coverage', '1 short vertical teaser reel'] },
+        ],
+      },
+      {
+        title: 'Food Photography',
+        description: 'High-end food and beverage imagery for restaurants, hospitality brands, menus, launches, and social campaigns.',
+        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/food-photography-bz5sMSnuys9aYQH4nZHtBu.webp',
+        packages: [
+          { name: 'Basic', price: '$950*', badge: '', includes: ['Up to 8 final edited images', '1 to 2 hero setups', 'Basic styling guidance'] },
+          { name: 'Standard', price: '$1,650*', badge: 'Most Popular', includes: ['Up to 15 final edited images', '3 to 4 styled setups', 'Hero shots and detail shots', 'Ideal for seasonal updates and social content'] },
+          { name: 'Full Service', price: '$2,850*', badge: '', includes: ['Up to 25 final edited images', '5 to 6 styled setups', 'Expanded art direction', 'Short motion clips or b-roll capture'] },
+        ],
+      },
+    ],
+  },
+];
+
+const NEW_ADDONS = [
+  { name: 'Additional Vertical Reel Edit', description: 'Extra reel from existing footage', price: '$450*' },
+  { name: 'Additional Short-Form Edit', description: 'From existing shoot footage', price: '$350*' },
+  { name: 'Drone Coverage', description: 'Aerial drone photography add-on', price: '$250*' },
+  { name: 'Rush Turnaround', description: 'Expedited editing and delivery', price: 'Custom' },
+  { name: 'Advanced Retouching', description: 'Per image retouching', price: '$35*/image' },
+  { name: 'Raw Footage Handoff', description: 'Unedited footage delivery', price: '$300*' },
+  { name: 'Additional Hour (Photo Only)', description: 'Extra hour of photo coverage', price: '$250*' },
+  { name: 'Additional Hour (Photo + Video)', description: 'Extra hour of photo and video', price: '$350*' },
+  { name: 'Studio, Talent, HMU & More', description: 'Studio rental, talent, props, stylist, permits, licensing', price: 'Custom' },
+];
+
 // Services Section
 function ServicesSection({ setView }: { setView: (v: View) => void }) {
   const { services, addOns } = useStore();
   const [expandedPricing, setExpandedPricing] = useState<string | null>(null);
   const [expandedDesc, setExpandedDesc] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('real-estate');
   // Track selected sqft tier per service: { "pkg-base": "0-2000", "pkg-standard": "2001-3000", ... }
   const [selectedTiers, setSelectedTiers] = useState<Record<string, string>>({});
 
@@ -959,12 +1095,9 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
   };
   const sqftKeys = ['0-2000', '2001-3000', '3001-4000', '4001-5000', '5001+'];
 
-  // Get the active price for a service (selected tier or base)
   const getActivePrice = (service: Service) => {
     const tier = selectedTiers[service.id];
-    if (tier && service.pricingTiers?.[tier]) {
-      return service.pricingTiers[tier];
-    }
+    if (tier && service.pricingTiers?.[tier]) return service.pricingTiers[tier];
     return service.basePrice;
   };
 
@@ -980,11 +1113,9 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
   const handleBookPackage = (service: Service) => {
     const activePrice = getActivePrice(service);
     const tierLabel = getActiveTierLabel(service);
-    // Override basePrice with selected tier price so booking uses it
     const serviceWithTierPrice = {
       ...service,
       basePrice: activePrice,
-      // Stash the selected tier info for the booking flow
       _selectedSqftTier: selectedTiers[service.id] || '0-2000',
       _selectedSqftLabel: tierLabel || '0–2,000 sqft',
     };
@@ -995,185 +1126,288 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
   return (
     <div className="min-h-screen pt-20 pb-20 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-4">
+        <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">Packages & Pricing</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
             Strategic photo, video, and drone packages that make you stand out.
           </p>
         </div>
 
-        {/* Sqft pricing note */}
-        <div className="text-center mb-12">
-          <Badge className="bg-[#cbb26a]/20 text-[#8f5e25] border-[#cbb26a]/30 text-sm px-4 py-1">
-            Select your property size below to see exact pricing
-          </Badge>
+        {/* Tab Navigation */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-card rounded-xl border border-[#cbb26a]/20">
+            {['real-estate', ...NEW_SERVICE_TABS.map(t => t.id)].map((tabId) => {
+              const label = tabId === 'real-estate' ? 'Real Estate'
+                : NEW_SERVICE_TABS.find(t => t.id === tabId)?.label || tabId;
+              return (
+                <button
+                  key={tabId}
+                  onClick={() => setActiveTab(tabId)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    activeTab === tabId
+                      ? 'btn-gold text-white shadow-md'
+                      : 'text-muted-foreground hover:text-[#cbb26a] hover:bg-[#cbb26a]/10'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {services.map((service: Service) => {
-            const activePrice = getActivePrice(service);
-            const activeTier = selectedTiers[service.id];
-            const isExpanded = expandedPricing === service.id;
+        {/* ── REAL ESTATE TAB ── */}
+        {activeTab === 'real-estate' && (
+          <>
+            <div className="flex justify-center mb-10">
+              <Badge className="bg-[#cbb26a]/20 text-[#8f5e25] border-[#cbb26a]/30 text-sm px-4 py-1">
+                Select your property size below to see exact pricing
+              </Badge>
+            </div>
 
-            return (
-              <Card key={service.id} className="flex flex-col gold-border card-lift relative overflow-hidden !pt-0 !gap-0">
-                {/* Popular badge for Standard package */}
-                {service.slug === 'standard-package' && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <Badge className="bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white border-0 shadow-lg text-xs">
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                {service.slug === 'unlimited-package' && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <Badge className="bg-gradient-to-r from-[#1a1a1a] to-[#444] text-[#cbb26a] border border-[#cbb26a]/50 shadow-lg text-xs">
-                      Best Value
-                    </Badge>
-                  </div>
-                )}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+              {services.map((service: Service) => {
+                const activePrice = getActivePrice(service);
+                const activeTier = selectedTiers[service.id];
+                const isExpanded = expandedPricing === service.id;
 
-                {/* Full-bleed image */}
-                <div className="aspect-[16/10] overflow-hidden">
-                  <img
-                    src={service.image}
-                    alt={service.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-lg">{service.name}</CardTitle>
-                  <CardDescription
-                    className={`text-sm leading-relaxed cursor-pointer transition-all ${expandedDesc === service.id ? '' : 'line-clamp-2 md:line-clamp-none'}`}
-                    onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
-                  >
-                    {service.description}
-                  </CardDescription>
-                  <button
-                    onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
-                    className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-1 md:hidden transition-colors"
-                  >
-                    {expandedDesc === service.id ? 'Show less' : 'Read more'}
-                    <ChevronDown className={`w-3 h-3 transition-transform ${expandedDesc === service.id ? 'rotate-180' : ''}`} />
-                  </button>
-                </CardHeader>
-                <CardContent className="flex-1 pt-2">
-                  <div className="space-y-4">
-                    {/* Price — updates when a tier is selected */}
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-[#8f5e25]">{formatPrice(activePrice)}</span>
-                      {activeTier ? (
-                        <span className="text-xs text-[#cbb26a] font-medium">{sqftLabels[activeTier]}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">starting from</span>
-                      )}
+                return (
+                  <Card key={service.id} className="flex flex-col gold-border card-lift relative overflow-hidden !pt-0 !gap-0">
+                    {service.slug === 'standard-package' && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <Badge className="bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white border-0 shadow-lg text-xs">Most Popular</Badge>
+                      </div>
+                    )}
+                    {service.slug === 'unlimited-package' && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <Badge className="bg-gradient-to-r from-[#1a1a1a] to-[#444] text-[#cbb26a] border border-[#cbb26a]/50 shadow-lg text-xs">Best Value</Badge>
+                      </div>
+                    )}
+                    <div className="aspect-[16/10] overflow-hidden">
+                      <img src={service.image} alt={service.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </div>
-
-                    {/* Deliverables */}
-                    <div>
-                      <p className="text-sm font-medium mb-2">What's included:</p>
-                      <ul className="space-y-1.5">
-                        {service.deliverables.map((item: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Check className="w-4 h-4 text-[#cbb26a] flex-shrink-0" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Selectable Pricing Tiers */}
-                    {service.pricingTiers && (
-                      <div>
-                        <button
-                          onClick={() => setExpandedPricing(isExpanded ? null : service.id)}
-                          className="text-sm text-[#8f5e25] hover:text-[#cbb26a] font-medium flex items-center gap-1 transition-colors"
-                        >
-                          <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                          {activeTier ? 'Change property size' : 'Select property size'}
-                        </button>
-                        {isExpanded && (
-                          <div className="mt-3 rounded-lg border border-[#cbb26a]/20 overflow-hidden">
-                            {sqftKeys.map((key) => {
-                              const isSelected = activeTier === key;
-                              const tierPrice = service.pricingTiers?.[key];
-                              return (
-                                <button
-                                  key={key}
-                                  onClick={() => handleSelectTier(service.id, key)}
-                                  className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-all ${isSelected
-                                    ? 'bg-[#cbb26a]/20 border-l-2 border-l-[#cbb26a]'
-                                    : 'hover:bg-[#cbb26a]/10 border-l-2 border-l-transparent'
-                                    }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-[#cbb26a]' : 'border-muted-foreground/30'
-                                      }`}>
-                                      {isSelected && <div className="w-2 h-2 rounded-full bg-[#cbb26a]" />}
-                                    </div>
-                                    <span className={isSelected ? 'text-[#cbb26a] font-medium' : 'text-muted-foreground'}>
-                                      {sqftLabels[key]}
-                                    </span>
-                                  </div>
-                                  <span className={`font-semibold ${isSelected ? 'text-[#cbb26a]' : 'text-[#8f5e25]'}`}>
-                                    {tierPrice ? formatPrice(tierPrice) : '—'}
-                                  </span>
-                                </button>
-                              );
-                            })}
+                    <CardHeader className="pb-2 pt-4">
+                      <CardTitle className="text-lg">{service.name}</CardTitle>
+                      <CardDescription
+                        className={`text-sm leading-relaxed cursor-pointer transition-all ${expandedDesc === service.id ? '' : 'line-clamp-2 md:line-clamp-none'}`}
+                        onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
+                      >
+                        {service.description}
+                      </CardDescription>
+                      <button
+                        onClick={() => setExpandedDesc(expandedDesc === service.id ? null : service.id)}
+                        className="text-xs text-[#cbb26a] hover:text-[#8f5e25] flex items-center gap-0.5 mt-1 md:hidden transition-colors"
+                      >
+                        {expandedDesc === service.id ? 'Show less' : 'Read more'}
+                        <ChevronDown className={`w-3 h-3 transition-transform ${expandedDesc === service.id ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CardHeader>
+                    <CardContent className="flex-1 pt-2">
+                      <div className="space-y-4">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-[#8f5e25]">{formatPrice(activePrice)}</span>
+                          {activeTier ? (
+                            <span className="text-xs text-[#cbb26a] font-medium">{sqftLabels[activeTier]}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">starting from</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-2">What's included:</p>
+                          <ul className="space-y-1.5">
+                            {service.deliverables.map((item: string, i: number) => (
+                              <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                                <Check className="w-4 h-4 text-[#cbb26a] flex-shrink-0" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {service.pricingTiers && (
+                          <div>
+                            <button
+                              onClick={() => setExpandedPricing(isExpanded ? null : service.id)}
+                              className="text-sm text-[#8f5e25] hover:text-[#cbb26a] font-medium flex items-center gap-1 transition-colors"
+                            >
+                              <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              {activeTier ? 'Change property size' : 'Select property size'}
+                            </button>
+                            {isExpanded && (
+                              <div className="mt-3 rounded-lg border border-[#cbb26a]/20 overflow-hidden">
+                                {sqftKeys.map((key) => {
+                                  const isSelected = activeTier === key;
+                                  const tierPrice = service.pricingTiers?.[key];
+                                  return (
+                                    <button
+                                      key={key}
+                                      onClick={() => handleSelectTier(service.id, key)}
+                                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-all ${isSelected ? 'bg-[#cbb26a]/20 border-l-2 border-l-[#cbb26a]' : 'hover:bg-[#cbb26a]/10 border-l-2 border-l-transparent'}`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-[#cbb26a]' : 'border-muted-foreground/30'}`}>
+                                          {isSelected && <div className="w-2 h-2 rounded-full bg-[#cbb26a]" />}
+                                        </div>
+                                        <span className={isSelected ? 'text-[#cbb26a] font-medium' : 'text-muted-foreground'}>{sqftLabels[key]}</span>
+                                      </div>
+                                      <span className={`font-semibold ${isSelected ? 'text-[#cbb26a]' : 'text-[#8f5e25]'}`}>
+                                        {tierPrice ? formatPrice(tierPrice) : '—'}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="pb-4 pt-2">
-                  <Button
-                    className="w-full btn-gold text-white"
-                    onClick={() => handleBookPackage(service)}
-                  >
-                    {activeTier
-                      ? `Book — ${formatPrice(activePrice)}`
-                      : 'Book This Package'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
+                    </CardContent>
+                    <CardFooter className="pb-4 pt-2">
+                      <Button className="w-full btn-gold text-white" onClick={() => handleBookPackage(service)}>
+                        {activeTier ? `Book — ${formatPrice(activePrice)}` : 'Book This Package'}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
 
-        {/* Add-ons / A La Carte Section */}
-        <div className="bg-card rounded-2xl p-8 border border-[#cbb26a]/20">
-          <h2 className="text-2xl font-bold mb-2 gradient-text">Add-Ons / A La Carte</h2>
-          <p className="text-muted-foreground mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Enhance your package with individual services. Prices shown are for 0–2,000 sqft.
-          </p>
+            {/* Real Estate Add-ons */}
+            <div className="bg-card rounded-2xl p-8 border border-[#cbb26a]/20 mb-8">
+              <h2 className="text-2xl font-bold mb-2 gradient-text">Add-Ons / A La Carte</h2>
+              <p className="text-muted-foreground mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Enhance your package with individual services. Prices shown are for 0–2,000 sqft.
+              </p>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {addOns.filter((a: AddOn) => a.isActive).map((addon: AddOn) => (
+                  <div key={addon.id} className="bg-card p-4 rounded-lg border border-[#cbb26a]/20 hover:border-[#cbb26a]/50 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{addon.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="font-semibold text-[#8f5e25]">{formatPrice(addon.price)}</span>
+                        {addon.priceType === 'per-photo' && (
+                          <span className="block text-xs text-muted-foreground">/photo</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {addOns.filter((a: AddOn) => a.isActive).map((addon: AddOn) => (
-              <div
-                key={addon.id}
-                className="bg-card p-4 rounded-lg border border-[#cbb26a]/20 hover:border-[#cbb26a]/50 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{addon.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <span className="font-semibold text-[#8f5e25]">{formatPrice(addon.price)}</span>
-                    {addon.priceType === 'per-photo' && (
-                      <span className="block text-xs text-muted-foreground">/photo</span>
-                    )}
-                  </div>
+        {/* ── NEW SERVICE TABS ── */}
+        {NEW_SERVICE_TABS.map(tab => activeTab === tab.id && (
+          <div key={tab.id}>
+            {tab.sections.map((section, si) => (
+              <div key={si} className="mb-14">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold gradient-text mb-1">{section.title}</h2>
+                  <p className="text-muted-foreground text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{section.description}</p>
+                </div>
+                <div className={`grid gap-6 ${
+                  section.packages.length === 2
+                    ? 'md:grid-cols-2 max-w-3xl'
+                    : 'md:grid-cols-2 lg:grid-cols-3'
+                }`}>
+                  {section.packages.map((pkg, pi) => (
+                    <div key={pi} className="relative">
+                      {pkg.badge && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <Badge className="bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white border-0 shadow-lg text-xs">{pkg.badge}</Badge>
+                        </div>
+                      )}
+                      <Card className="flex flex-col gold-border card-lift relative overflow-hidden !pt-0 !gap-0 h-full">
+                        <div className="aspect-[16/10] overflow-hidden">
+                          <img src={section.image} alt={pkg.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                        </div>
+                        <CardHeader className="pb-2 pt-4">
+                          <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                          <CardDescription className="text-sm leading-relaxed line-clamp-2 md:line-clamp-none">
+                            {section.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 pt-2">
+                          <div className="space-y-4">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold text-[#8f5e25]">{pkg.price}</span>
+                              <span className="text-xs text-muted-foreground">starting from</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium mb-2">What's included:</p>
+                              <ul className="space-y-1.5">
+                                {pkg.includes.map((item, ii) => (
+                                  <li key={ii} className="text-sm text-muted-foreground flex items-center gap-2">
+                                    <Check className="w-4 h-4 text-[#cbb26a] flex-shrink-0" />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="pb-4 pt-2">
+                          <Button className="w-full btn-gold text-white" onClick={() => setView('booking')}>
+                            Book This Package
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
+
+            {/* Popular Add-Ons for new tabs */}
+            <div className="bg-card rounded-2xl p-8 border border-[#cbb26a]/20 mb-8">
+              <h2 className="text-2xl font-bold mb-2 gradient-text">Popular Add-Ons</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                {NEW_ADDONS.map((addon, ai) => (
+                  <div key={ai} className="bg-card p-4 rounded-lg border border-[#cbb26a]/20 hover:border-[#cbb26a]/50 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{addon.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="font-semibold text-[#8f5e25]">{addon.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="bg-card/50 rounded-xl p-6 border border-[#cbb26a]/10 mb-8">
+              <ul className="space-y-1.5">
+                {['Half-day = up to 4 hours on-site', 'Full-day = up to 8 hours on-site', 'Standard turnaround: 5 to 7 business days unless otherwise noted', 'Custom quotes available for recurring content, multi-day productions, and commercial campaigns'].map((note, ni) => (
+                  <li key={ni} className="text-sm text-muted-foreground flex items-start gap-2">
+                    <span className="text-[#cbb26a] mt-0.5">•</span>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center max-w-3xl mx-auto mb-8">
+              *All prices are starting at. Final pricing may vary based on scope, creative direction, location, licensing, talent, studio rental, styling, assistants, travel, rush turnaround, retouching, and other production needs.
+            </p>
           </div>
+        ))}
+
+        {/* Custom Quote CTA */}
+        <div className="mt-8 text-center bg-card rounded-2xl p-10 border border-[#cbb26a]/20">
+          <h2 className="text-2xl font-bold gradient-text mb-3">Need something custom?</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Every shoot is different. If you need a custom package, recurring content, multi-day coverage, or a campaign quote, reach out and we'll build the right solution for your goals.
+          </p>
+          <Button className="btn-gold text-white px-8 py-3 text-base" onClick={() => setView('contact')}>
+            Get a Custom Quote
+          </Button>
         </div>
       </div>
     </div>
