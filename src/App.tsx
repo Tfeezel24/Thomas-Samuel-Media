@@ -590,15 +590,18 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
               >
                 {item.videoUrl ? (
                   <video
-                    src={item.videoUrl}
                     poster={item.thumbnail || item.image}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     autoPlay
                     loop
                     playsInline
                     muted
-                    preload="auto"
-                  />
+                    preload="metadata"
+                    crossOrigin="anonymous"
+                  >
+                    <source src={item.videoUrl} type="video/mp4" />
+                    <source src={item.videoUrl} />
+                  </video>
                 ) : (
                   <img
                     src={item.thumbnail || item.image}
@@ -671,6 +674,8 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [inView, setInView] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Only load the video when it enters the viewport
   useEffect(() => {
@@ -683,22 +688,44 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
           observer.disconnect();
         }
       },
-      { rootMargin: '300px' }
+      { rootMargin: '400px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  // Play once loaded
+  // Play once loaded and handle buffering states
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !inView) return;
-    const play = () => video.play().catch(() => {});
-    if (video.readyState >= 2) {
+
+    const play = () => {
+      setIsBuffering(false);
+      video.play().catch(() => {});
+    };
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => setIsBuffering(false);
+    const onCanPlay = () => { setIsBuffering(false); };
+    const onError = () => { setHasError(true); setIsBuffering(false); };
+
+    video.addEventListener('waiting', onWaiting);
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('error', onError);
+
+    if (video.readyState >= 3) {
       play();
     } else {
-      video.addEventListener('loadeddata', play, { once: true });
+      setIsBuffering(true);
+      video.addEventListener('canplay', play, { once: true });
     }
+
+    return () => {
+      video.removeEventListener('waiting', onWaiting);
+      video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('error', onError);
+    };
   }, [inView]);
 
   const formatLabel = (slug: string) =>
@@ -706,7 +733,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
 
   return (
     <div ref={containerRef} className="w-full h-full relative bg-black overflow-hidden">
-      {/* Show thumbnail placeholder until in viewport */}
+      {/* Thumbnail shown until video is in viewport */}
       {!inView && (
         <img
           src={item.thumbnail || item.image}
@@ -716,21 +743,51 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
           decoding="async"
         />
       )}
-      {/* Only mount video element when in viewport */}
+      {/* Video element — only mounted when in viewport */}
       {inView && (
-        <video
-          ref={videoRef}
-          src={item.videoUrl}
-          poster={item.thumbnail || item.image}
-          className="w-full h-full object-cover"
-          loop
-          playsInline
-          muted
-          controls
-          preload="none"
-        />
+        <>
+          {/* Poster image stays visible while video buffers */}
+          {isBuffering && !hasError && (
+            <img
+              src={item.thumbnail || item.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover z-10"
+            />
+          )}
+          {/* Buffering spinner */}
+          {isBuffering && !hasError && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full border-2 border-[#cbb26a]/40 border-t-[#cbb26a] animate-spin" />
+            </div>
+          )}
+          {/* Error fallback */}
+          {hasError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-2">
+              <img
+                src={item.thumbnail || item.image}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover opacity-40"
+              />
+              <Play className="w-10 h-10 text-[#cbb26a] relative z-10" />
+            </div>
+          )}
+          <video
+            ref={videoRef}
+            poster={item.thumbnail || item.image}
+            className="w-full h-full object-cover"
+            loop
+            playsInline
+            muted
+            controls
+            preload="metadata"
+            crossOrigin="anonymous"
+          >
+            <source src={item.videoUrl} type="video/mp4" />
+            <source src={item.videoUrl} />
+          </video>
+        </>
       )}
-      <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+      <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
         <Badge className="w-fit bg-[#cbb26a]/90 text-white border-0 text-xs">
           {item.category ? formatLabel(item.category) : 'Video'}
         </Badge>

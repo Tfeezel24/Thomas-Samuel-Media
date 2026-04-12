@@ -2,12 +2,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '@/hooks/useStore';
 import heroVideoData from '@/data/heroVideos.json';
 
+// Detect MIME type from URL for proper <source type> attribute
+function getMimeType(url: string): string {
+    const lower = url.toLowerCase().split('?')[0];
+    if (lower.endsWith('.webm')) return 'video/webm';
+    if (lower.endsWith('.mov')) return 'video/quicktime';
+    if (lower.endsWith('.ogg') || lower.endsWith('.ogv')) return 'video/ogg';
+    return 'video/mp4'; // default / most compatible
+}
+
 export function HeroVideo() {
     const { carouselVideos, dataLoaded } = useStore();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [videos, setVideos] = useState<string[]>(Object.values(heroVideoData));
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
     const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set([0]));
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         if (dataLoaded) {
@@ -22,6 +32,7 @@ export function HeroVideo() {
                 setVideos(Object.values(heroVideoData));
             }
             setLoadedIndices(new Set([0]));
+            setIsReady(false);
         }
     }, [carouselVideos, dataLoaded]);
 
@@ -43,9 +54,19 @@ export function HeroVideo() {
 
     useEffect(() => {
         const currentVideo = videoRefs.current[currentIndex];
-        if (currentVideo) {
-            currentVideo.currentTime = 0;
+        if (!currentVideo) return;
+
+        const attemptPlay = () => {
+            setIsReady(true);
             currentVideo.play().catch(() => {});
+        };
+
+        currentVideo.currentTime = 0;
+
+        if (currentVideo.readyState >= 3) {
+            attemptPlay();
+        } else {
+            currentVideo.addEventListener('canplay', attemptPlay, { once: true });
         }
 
         videoRefs.current.forEach((video, index) => {
@@ -54,6 +75,10 @@ export function HeroVideo() {
                 video.currentTime = 0;
             }
         });
+
+        return () => {
+            currentVideo.removeEventListener('canplay', attemptPlay);
+        };
     }, [currentIndex, videos]);
 
     const handleVideoEnded = () => {
@@ -66,15 +91,20 @@ export function HeroVideo() {
                 <video
                     key={`${src}-${index}`}
                     ref={(el) => { videoRefs.current[index] = el; }}
-                    src={src}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-                    autoPlay={index === 0}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                        index === currentIndex && isReady ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
                     muted
                     playsInline
                     preload={index === 0 ? 'auto' : 'none'}
                     onEnded={index === currentIndex ? handleVideoEnded : undefined}
                     onTimeUpdate={index === currentIndex ? handleTimeUpdate : undefined}
-                />
+                    onCanPlay={index === currentIndex ? () => setIsReady(true) : undefined}
+                >
+                    <source src={src} type={getMimeType(src)} />
+                    {/* Fallback source without type for maximum compatibility */}
+                    <source src={src} />
+                </video>
             ))}
             <div className="absolute inset-0 bg-black/40 z-20" />
         </div>
