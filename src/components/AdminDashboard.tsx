@@ -17,8 +17,7 @@ import { useAuth, useAdmin } from '@/hooks/useStore';
 import { storageService } from '@/lib/firebaseService';
 import { formatPrice, formatDate } from '@/data/mockData';
 import type {
-    Service, AddOn, PortfolioItem, Testimonial, Booking, Client, CarouselVideo, ContactMessage,
-
+    Service, AddOn, PortfolioItem, Testimonial, Booking, Client, CarouselVideo, ContactMessage, ServiceTabCategory,
 } from '@/types';
 import { ProjectsTab, InvoicesTab } from '@/components/AdminProjectTabs';
 import { TransactionsTab } from '@/components/AdminTransactionsTab';
@@ -772,7 +771,7 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
     };
     const handleSaveService = async () => {
         if (!serviceForm.name) { alert('Name is required'); return; }
-        const data = { ...serviceForm, deliverables: deliverablesText.split('\n').filter(Boolean), includes: includesText.split('\n').filter(Boolean) };
+        const data = { ...serviceForm, deliverables: deliverablesText.split('\n').filter(Boolean), includes: includesText.split('\n').filter(Boolean), tabCategory: (serviceForm.tabCategory || undefined) as ServiceTabCategory | undefined };
         if (editService) await onUpdateService(editService.id, data);
         else await onCreateService(data);
         setShowServiceForm(false);
