@@ -416,9 +416,9 @@ export const projectsService = {
 // ─── PORTFOLIO SERVICE ─────────────────────────────────────────────────────
 export const portfolioService = {
     async getAll(): Promise<PortfolioItem[]> {
-        const snap = await getDocs(
-            query(collection(db, "portfolio"), orderBy("date", "desc"))
-        );
+        // No orderBy here — avoids requiring a Firestore composite index.
+        // Sorting is done client-side by sortOrder after fetch.
+        const snap = await getDocs(collection(db, "portfolio"));
         const items = snap.docs.map((d) => ({ id: d.id, ...convertTimestamps(d.data()) } as PortfolioItem));
         return items.sort((a, b) => (a.sortOrder ?? 999999) - (b.sortOrder ?? 999999));
     },
