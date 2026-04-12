@@ -590,6 +590,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
               >
                 {item.videoUrl ? (
                   <video
+                    src={item.videoUrl}
                     poster={item.thumbnail || item.image}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     autoPlay
@@ -597,11 +598,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                     playsInline
                     muted
                     preload="metadata"
-                    crossOrigin="anonymous"
-                  >
-                    <source src={item.videoUrl} type="video/mp4" />
-                    <source src={item.videoUrl} />
-                  </video>
+                  />
                 ) : (
                   <img
                     src={item.thumbnail || item.image}
@@ -773,6 +770,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
           )}
           <video
             ref={videoRef}
+            src={item.videoUrl}
             poster={item.thumbnail || item.image}
             className="w-full h-full object-cover"
             loop
@@ -780,11 +778,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
             muted
             controls
             preload="metadata"
-            crossOrigin="anonymous"
-          >
-            <source src={item.videoUrl} type="video/mp4" />
-            <source src={item.videoUrl} />
-          </video>
+          />
         </>
       )}
       <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">

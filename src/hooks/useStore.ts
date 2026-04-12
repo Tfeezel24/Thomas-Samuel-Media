@@ -327,7 +327,7 @@ export const useStore = create<AppState>()(
 
       loadAdminData: async () => {
         try {
-          const [clients, bookings, invoices, projects, carouselVids, messages, payments] = await Promise.all([
+          const [clients, bookings, invoices, projects, carouselVids, messages, payments, portfolio, portfolioCats] = await Promise.all([
             clientsService.getAll(),
             bookingsService.getAll(),
             invoicesService.getAll(),
@@ -335,6 +335,8 @@ export const useStore = create<AppState>()(
             carouselVideosService.getAll(),
             contactMessagesService.getAll(),
             paymentsService.getAll(),
+            portfolioService.getAll(),
+            portfolioCategoriesService.getAll(),
           ]);
           set({
             clients,
@@ -344,6 +346,8 @@ export const useStore = create<AppState>()(
             carouselVideos: carouselVids,
             contactMessages: messages,
             allPayments: payments,
+            portfolioItems: portfolio,
+            portfolioCategories: portfolioCats,
           });
         } catch (error) {
           console.error('Failed to load admin data:', error);
