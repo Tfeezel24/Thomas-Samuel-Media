@@ -462,9 +462,12 @@ export const portfolioService = {
             }
         }
 
-        const FETCH_SIZE = pageSize + 1;
+        // When filtering by type without a category, we need to over-fetch because
+        // client-side type filtering will discard many items. Use a 10x multiplier
+        // for the "All Videos" case to ensure enough items are returned.
+        const needsOverfetch = filterType === 'video' && !filterCategory;
+        const FETCH_SIZE = needsOverfetch ? pageSize * 10 : pageSize + 1;
         // Build query constraints — push as much filtering to Firestore as possible
-        const constraints: any[] = [collection(db, "portfolio")];
         const qConstraints: any[] = [];
 
         // Server-side category filter (avoids scanning entire collection)
@@ -493,15 +496,17 @@ export const portfolioService = {
         }
 
         const allDocs = snap.docs;
-        const hasMore = allDocs.length > pageSize;
-        const pageDocs = hasMore ? allDocs.slice(0, pageSize) : allDocs;
+
+        // Client-side type filter
+        let filteredDocs = allDocs;
+        if (filterType === 'video') filteredDocs = allDocs.filter(d => !!(d.data() as any).videoUrl);
+        if (filterType === 'photo') filteredDocs = allDocs.filter(d => !(d.data() as any).videoUrl && !!(d.data() as any).image);
+
+        const hasMore = filteredDocs.length > pageSize;
+        const pageDocs = hasMore ? filteredDocs.slice(0, pageSize) : filteredDocs;
         const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
 
-        let items = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
-
-        // Client-side type filter as safety net (handles items without videoUrl field)
-        if (filterType === 'video') items = items.filter(i => !!i.videoUrl);
-        if (filterType === 'photo') items = items.filter(i => !i.videoUrl && !!i.image);
+        const items = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
 
         const result = { items, lastDoc: lastPageDoc, hasMore };
 
