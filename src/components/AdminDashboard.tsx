@@ -736,9 +736,10 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
     const [subTab, setSubTab] = useState<'services' | 'addons'>('services');
     const [showServiceForm, setShowServiceForm] = useState(false);
     const [editService, setEditService] = useState<Service | null>(null);
-    const emptyServiceForm = { name: '', slug: '', category: 'photo' as Service['category'], description: '', duration: 60, basePrice: 0, depositRequired: 50, deliverables: [] as string[], addons: [] as string[], bufferTime: 30, minNotice: 24, maxAdvance: 90, isActive: true, image: '', sortOrder: 0, pricingTiers: {} as Record<string, number> };
+    const emptyServiceForm = { name: '', slug: '', category: 'photo' as Service['category'], tabCategory: '', serviceSection: '', description: '', duration: 60, basePrice: 0, displayPrice: '', price: '', depositRequired: 50, deliverables: [] as string[], includes: [] as string[], addons: [] as string[], bufferTime: 30, minNotice: 24, maxAdvance: 90, isActive: true, active: true, image: '', imageUrl: '', sortOrder: 0, order: 0, badge: '', highlighted: false, pricingTiers: {} as Record<string, number> };
     const [serviceForm, setServiceForm] = useState(emptyServiceForm);
     const [deliverablesText, setDeliverablesText] = useState('');
+    const [includesText, setIncludesText] = useState('');
     const [uploading, setUploading] = useState(false);
 
     const handleServiceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -747,7 +748,8 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
         setUploading(true);
         try {
             const url = await storageService.uploadFile(file, 'services/images');
-            setServiceForm(prev => ({ ...prev, image: url }));
+            // Set both image and imageUrl so it works for both old and new services
+            setServiceForm(prev => ({ ...prev, image: url, imageUrl: url }));
         } catch (err) {
             console.error(err);
             alert('Upload failed');
@@ -761,15 +763,16 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
     const emptyAddonForm = { name: '', description: '', price: 0, priceType: 'fixed' as AddOn['priceType'], applicableServices: [] as string[], isActive: true };
     const [addonForm, setAddonForm] = useState(emptyAddonForm);
 
-    const openCreateService = () => { setServiceForm(emptyServiceForm); setDeliverablesText(''); setEditService(null); setShowServiceForm(true); };
-    const openEditService = (s: Service) => {
-        setServiceForm({ name: s.name, slug: s.slug, category: s.category, description: s.description, duration: s.duration, basePrice: s.basePrice, depositRequired: s.depositRequired, deliverables: s.deliverables, addons: s.addons, bufferTime: s.bufferTime, minNotice: s.minNotice, maxAdvance: s.maxAdvance, isActive: s.isActive, image: s.image || '', sortOrder: s.sortOrder, pricingTiers: s.pricingTiers || {} });
-        setDeliverablesText(s.deliverables.join('\n'));
+    const openCreateService = () => { setServiceForm(emptyServiceForm); setDeliverablesText(''); setIncludesText(''); setEditService(null); setShowServiceForm(true); };
+    const openEditService = (s: any) => {
+        setServiceForm({ name: s.name, slug: s.slug || '', category: s.category || 'photo', tabCategory: s.tabCategory || '', serviceSection: s.serviceSection || '', description: s.description || '', duration: s.duration || 60, basePrice: s.basePrice || 0, displayPrice: s.displayPrice || '', price: s.price || '', depositRequired: s.depositRequired || 50, deliverables: s.deliverables || [], includes: s.includes || [], addons: s.addons || [], bufferTime: s.bufferTime || 30, minNotice: s.minNotice || 24, maxAdvance: s.maxAdvance || 90, isActive: typeof s.isActive === 'boolean' ? s.isActive : true, active: typeof s.active === 'boolean' ? s.active : true, image: s.image || '', imageUrl: s.imageUrl || '', sortOrder: s.sortOrder || 0, order: s.order || 0, badge: s.badge || '', highlighted: s.highlighted || false, pricingTiers: s.pricingTiers || {} });
+        setDeliverablesText((s.deliverables || []).join('\n'));
+        setIncludesText((s.includes || []).join('\n'));
         setEditService(s); setShowServiceForm(true);
     };
     const handleSaveService = async () => {
         if (!serviceForm.name) { alert('Name is required'); return; }
-        const data = { ...serviceForm, deliverables: deliverablesText.split('\n').filter(Boolean) };
+        const data = { ...serviceForm, deliverables: deliverablesText.split('\n').filter(Boolean), includes: includesText.split('\n').filter(Boolean) };
         if (editService) await onUpdateService(editService.id, data);
         else await onCreateService(data);
         setShowServiceForm(false);
@@ -799,76 +802,152 @@ function PackagesTab({ services, addOns, onCreateService, onUpdateService, onDel
                     <CardHeader><div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"><CardTitle>Packages / Services</CardTitle><Button onClick={openCreateService}><Plus className="w-4 h-4 mr-2" />Add Package</Button></div></CardHeader>
                     <CardContent>
                         <div className="space-y-3">
-                            {services.map(s => (
+                            {(services as any[]).map((s: any) => {
+                                const imgSrc = s.imageUrl || s.image || '';
+                                const isActive = typeof s.active === 'boolean' ? s.active : (typeof s.isActive === 'boolean' ? s.isActive : true);
+                                const displayPrice = s.price || (s.basePrice ? formatPrice(s.basePrice) : '');
+                                const tabLabel = s.tabCategory ? { 'real-estate': 'Real Estate', 'brand-commercial': 'Brand & Commercial', 'social-content': 'Social & Content', 'events-hospitality': 'Events & Hospitality' }[s.tabCategory as string] || s.tabCategory : s.category;
+                                return (
                                 <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border rounded-lg hover:shadow-sm transition-shadow gap-4">
                                     <div className="flex items-center gap-4">
-                                        {s.image && <img src={s.image} alt={s.name} loading="lazy" decoding="async" className="w-16 h-12 object-cover rounded" />}
+                                        {imgSrc && <img src={imgSrc} alt={s.name} loading="lazy" decoding="async" className="w-16 h-12 object-cover rounded" />}
                                         <div>
                                             <p className="font-medium">{s.name}</p>
-                                            <p className="text-sm text-muted-foreground">{s.category} • {s.duration}min • {formatPrice(s.basePrice)}</p>
+                                            <p className="text-sm text-muted-foreground">{tabLabel}{s.serviceSection ? ` › ${s.serviceSection}` : ''} • {displayPrice}</p>
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                                        <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Inactive'}</Badge>
                                         <Button variant="ghost" size="icon" onClick={() => openEditService(s)}><Edit className="w-4 h-4" /></Button>
                                         <Button variant="ghost" size="icon" onClick={() => onDeleteService(s.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                             {services.length === 0 && <p className="text-center py-8 text-muted-foreground">No packages found</p>}
                         </div>
                     </CardContent>
                     <Modal open={showServiceForm} onClose={() => setShowServiceForm(false)} title={editService ? 'Edit Package' : 'Add Package'}>
                         <div className="space-y-4">
-                            <div><Label>Name *</Label><Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} /></div>
-                            <div><Label>Slug</Label><Input value={serviceForm.slug} onChange={e => setServiceForm({ ...serviceForm, slug: e.target.value })} /></div>
-                            <div><Label>Category</Label>
-                                <select className="w-full border rounded-md px-3 py-2 bg-background" value={serviceForm.category} onChange={e => setServiceForm({ ...serviceForm, category: e.target.value as Service['category'] })}>
-                                    {['photo', 'video', 'drone', 'mixed', 'real-estate'].map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div><Label>Description</Label><Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} rows={3} /></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><Label>Base Price (cents)</Label><Input type="number" value={serviceForm.basePrice} onChange={e => setServiceForm({ ...serviceForm, basePrice: Number(e.target.value) })} /></div>
-                                <div><Label>Duration (min)</Label><Input type="number" value={serviceForm.duration} onChange={e => setServiceForm({ ...serviceForm, duration: Number(e.target.value) })} /></div>
-                            </div>
+                            <div><Label>Package Name *</Label><Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} placeholder="e.g. Brand Photography – Standard" /></div>
 
+                            {/* Tab & Section */}
                             <div className="border p-4 rounded-lg bg-muted/20">
-                                <Label className="mb-4 block font-semibold text-[#8f5e25]">Pricing by Property Size (Optional overrides)</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {sqftTiers.map(tier => (
-                                        <div key={tier.key}>
-                                            <Label className="text-xs text-muted-foreground mb-1 block">{tier.label}</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="Use base price"
-                                                value={serviceForm.pricingTiers?.[tier.key] || ''}
-                                                onChange={e => {
-                                                    const val = e.target.value ? Number(e.target.value) : undefined;
-                                                    const newTiers = { ...serviceForm.pricingTiers };
-                                                    if (val !== undefined) newTiers[tier.key] = val;
-                                                    else delete newTiers[tier.key];
-                                                    setServiceForm({ ...serviceForm, pricingTiers: newTiers });
-                                                }}
-                                            />
-                                        </div>
-                                    ))}
+                                <Label className="mb-3 block font-semibold text-[#8f5e25]">Tab & Section (for new service categories)</Label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-1 block">Tab Category</Label>
+                                        <select className="w-full border rounded-md px-3 py-2 bg-background text-sm" value={serviceForm.tabCategory} onChange={e => setServiceForm({ ...serviceForm, tabCategory: e.target.value })}>
+                                            <option value="">-- Select Tab --</option>
+                                            <option value="real-estate">Real Estate</option>
+                                            <option value="brand-commercial">Brand &amp; Commercial</option>
+                                            <option value="social-content">Social &amp; Content</option>
+                                            <option value="events-hospitality">Events &amp; Hospitality</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-1 block">Service Section (sub-group within tab)</Label>
+                                        <Input value={serviceForm.serviceSection} onChange={e => setServiceForm({ ...serviceForm, serviceSection: e.target.value })} placeholder="e.g. Brand &amp; Promotional Photography" />
+                                    </div>
                                 </div>
                             </div>
+
+                            <div><Label>Description</Label><Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} rows={3} /></div>
+
+                            {/* Pricing */}
+                            <div className="border p-4 rounded-lg bg-muted/20">
+                                <Label className="mb-3 block font-semibold text-[#8f5e25]">Pricing</Label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-1 block">Display Price (shown on card, e.g. "$1,250")</Label>
+                                        <Input value={serviceForm.price} onChange={e => setServiceForm({ ...serviceForm, price: e.target.value })} placeholder="e.g. $1,250" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Base Price (cents, for booking)</Label>
+                                            <Input type="number" value={serviceForm.basePrice} onChange={e => setServiceForm({ ...serviceForm, basePrice: Number(e.target.value) })} />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Sort Order</Label>
+                                            <Input type="number" value={serviceForm.order || serviceForm.sortOrder} onChange={e => setServiceForm({ ...serviceForm, order: Number(e.target.value), sortOrder: Number(e.target.value) })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Real Estate sqft pricing tiers */}
+                            {serviceForm.tabCategory === 'real-estate' && (
+                                <div className="border p-4 rounded-lg bg-muted/20">
+                                    <Label className="mb-4 block font-semibold text-[#8f5e25]">Pricing by Property Size (Real Estate)</Label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {sqftTiers.map(tier => (
+                                            <div key={tier.key}>
+                                                <Label className="text-xs text-muted-foreground mb-1 block">{tier.label}</Label>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Use base price"
+                                                    value={serviceForm.pricingTiers?.[tier.key] || ''}
+                                                    onChange={e => {
+                                                        const val = e.target.value ? Number(e.target.value) : undefined;
+                                                        const newTiers = { ...serviceForm.pricingTiers };
+                                                        if (val !== undefined) newTiers[tier.key] = val;
+                                                        else delete newTiers[tier.key];
+                                                        setServiceForm({ ...serviceForm, pricingTiers: newTiers });
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Image */}
                             <div>
-                                <Label>Image</Label>
+                                <Label>Card Image</Label>
                                 <div className="flex gap-2 items-center mb-2">
                                     <Input type="file" accept="image/*" onChange={handleServiceImageUpload} disabled={uploading} />
                                     {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
                                 </div>
-                                <Input value={serviceForm.image} onChange={e => setServiceForm({ ...serviceForm, image: e.target.value })} placeholder="Image URL" />
+                                <Input value={serviceForm.imageUrl || serviceForm.image} onChange={e => setServiceForm({ ...serviceForm, imageUrl: e.target.value, image: e.target.value })} placeholder="Or paste image URL directly" />
+                                {(serviceForm.imageUrl || serviceForm.image) && (
+                                    <img src={serviceForm.imageUrl || serviceForm.image} alt="preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+                                )}
                             </div>
-                            <div><Label>Deliverables (one per line)</Label><Textarea value={deliverablesText} onChange={e => setDeliverablesText(e.target.value)} rows={4} /></div>
+
+                            {/* What's Included (new services) */}
+                            <div>
+                                <Label>What's Included (one item per line)</Label>
+                                <p className="text-xs text-muted-foreground mb-1">Used for Brand, Social, Events &amp; Hospitality packages</p>
+                                <Textarea value={includesText} onChange={e => setIncludesText(e.target.value)} rows={5} placeholder="Up to 4 hours on-site&#10;1 location&#10;20 edited photo selects" />
+                            </div>
+
+                            {/* Deliverables (real estate) */}
+                            <div>
+                                <Label>Deliverables (one per line)</Label>
+                                <p className="text-xs text-muted-foreground mb-1">Used for Real Estate packages</p>
+                                <Textarea value={deliverablesText} onChange={e => setDeliverablesText(e.target.value)} rows={4} placeholder="HDR Photos&#10;Matterport 3D Tour" />
+                            </div>
+
+                            {/* Badge & Highlight */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div><Label>Deposit %</Label><Input type="number" value={serviceForm.depositRequired} onChange={e => setServiceForm({ ...serviceForm, depositRequired: Number(e.target.value) })} /></div>
-                                <div><Label>Sort Order</Label><Input type="number" value={serviceForm.sortOrder} onChange={e => setServiceForm({ ...serviceForm, sortOrder: Number(e.target.value) })} /></div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-1 block">Badge (e.g. "Most Popular")</Label>
+                                    <Input value={serviceForm.badge} onChange={e => setServiceForm({ ...serviceForm, badge: e.target.value })} placeholder="Most Popular" />
+                                </div>
+                                <div className="flex items-center gap-2 pt-5">
+                                    <input type="checkbox" checked={serviceForm.highlighted} onChange={e => setServiceForm({ ...serviceForm, highlighted: e.target.checked })} className="w-4 h-4" />
+                                    <Label>Highlighted card</Label>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2"><input type="checkbox" checked={serviceForm.isActive} onChange={e => setServiceForm({ ...serviceForm, isActive: e.target.checked })} className="w-4 h-4" /><Label>Active</Label></div>
+
+                            {/* Active toggles */}
+                            <div className="flex gap-6">
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" checked={serviceForm.isActive && serviceForm.active} onChange={e => setServiceForm({ ...serviceForm, isActive: e.target.checked, active: e.target.checked })} className="w-4 h-4" />
+                                    <Label>Active (visible on site)</Label>
+                                </div>
+                            </div>
+
                             <Button className="w-full btn-gold text-white" onClick={handleSaveService}>{editService ? 'Update Package' : 'Create Package'}</Button>
                         </div>
                     </Modal>

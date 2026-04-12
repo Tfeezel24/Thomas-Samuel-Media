@@ -30,14 +30,19 @@ export interface Client {
 }
 
 // Service Types
+export type ServiceTabCategory = 'real-estate' | 'brand-commercial' | 'social-content' | 'events-hospitality';
+
 export interface Service {
   id: string;
   name: string;
   slug: string;
   category: 'photo' | 'video' | 'drone' | 'mixed' | 'real-estate';
+  tabCategory?: ServiceTabCategory; // which public tab this service belongs to
+  serviceSection?: string; // sub-section label within the tab (e.g. 'Brand & Promotional Photography')
   description: string;
   duration: number;
   basePrice: number;
+  displayPrice?: string; // optional display price string e.g. '$1,250*' for non-tiered services
   depositRequired: number;
   deliverables: string[];
   addons: string[];
