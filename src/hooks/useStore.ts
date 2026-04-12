@@ -534,6 +534,7 @@ export const useStore = create<AppState>()(
       adminCreatePortfolioItem: async (item) => {
         try {
           await portfolioService.create(item);
+          portfolioService.invalidateCache();
           const updated = await portfolioService.getAll();
           set({ portfolioItems: updated });
           get().showToast('Portfolio item created', 'success');
@@ -545,6 +546,7 @@ export const useStore = create<AppState>()(
       adminUpdatePortfolioItem: async (id, data) => {
         try {
           await portfolioService.update(id, data);
+          portfolioService.invalidateCache();
           // Optimistic local update — avoids re-fetching all items which causes scroll-to-top
           set(s => ({ portfolioItems: s.portfolioItems.map(p => p.id === id ? { ...p, ...data } : p) }));
           get().showToast('Portfolio item updated', 'success');
@@ -556,6 +558,7 @@ export const useStore = create<AppState>()(
       adminDeletePortfolioItem: async (id) => {
         try {
           await portfolioService.delete(id);
+          portfolioService.invalidateCache();
           set(s => ({ portfolioItems: s.portfolioItems.filter(p => p.id !== id) }));
           get().showToast('Portfolio item deleted', 'success');
         } catch (error) {

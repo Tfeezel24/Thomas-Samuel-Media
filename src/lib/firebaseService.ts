@@ -443,54 +443,88 @@ export const portfolioService = {
 
     // Paginated fetch — returns items + the last document snapshot for cursor.
     // Keeps fetching batches until we collect `pageSize` matching items or exhaust all docs.
+    // In-memory cache: key → { items, lastDoc, hasMore, ts }
+    _pageCache: new Map<string, { items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean; ts: number }>(),
+    _CACHE_TTL: 5 * 60 * 1000, // 5 minutes
+
     async getPage(
         pageSize: number,
         cursor?: DocumentSnapshot | null,
         filterType?: 'photo' | 'video',
         filterCategory?: string
     ): Promise<{ items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
-        const BATCH = Math.max(pageSize * 4, 100); // fetch larger batches to account for filtering
-        const collected: PortfolioItem[] = [];
-        let currentCursor: DocumentSnapshot | null = cursor ?? null;
-        let exhausted = false;
-        let lastPageDoc: DocumentSnapshot | null = null;
-
-        while (collected.length < pageSize && !exhausted) {
-            let q = query(collection(db, "portfolio"), orderBy("date", "desc"), limit(BATCH + 1));
-            if (currentCursor) {
-                q = query(collection(db, "portfolio"), orderBy("date", "desc"), startAfter(currentCursor), limit(BATCH + 1));
+        // Only cache first-page requests (cursor === null)
+        const cacheKey = `${filterType}|${filterCategory ?? 'all'}|${pageSize}`;
+        if (!cursor) {
+            const cached = this._pageCache.get(cacheKey);
+            if (cached && Date.now() - cached.ts < this._CACHE_TTL) {
+                return { items: cached.items, lastDoc: cached.lastDoc, hasMore: cached.hasMore };
             }
-            const snap = await getDocs(q);
-            const allDocs = snap.docs;
-            const batchHasMore = allDocs.length > BATCH;
-            const pageDocs = batchHasMore ? allDocs.slice(0, BATCH) : allDocs;
-
-            if (pageDocs.length === 0) { exhausted = true; break; }
-
-            let batchItems = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
-            // Client-side filter
-            if (filterType === 'video') batchItems = batchItems.filter(i => !!i.videoUrl);
-            // Photos: no videoUrl, but must have an image (skip truly empty/broken items)
-            if (filterType === 'photo') batchItems = batchItems.filter(i => !i.videoUrl && !!i.image);
-            if (filterCategory && filterCategory !== 'all') batchItems = batchItems.filter(i => i.category === filterCategory);
-
-            collected.push(...batchItems);
-            lastPageDoc = pageDocs[pageDocs.length - 1];
-            currentCursor = lastPageDoc;
-            if (!batchHasMore) { exhausted = true; }
         }
 
-        const result = collected.slice(0, pageSize);
-        const hasMore = !exhausted || collected.length > pageSize;
-        return { items: result, lastDoc: lastPageDoc, hasMore: !exhausted };
+        const FETCH_SIZE = pageSize + 1;
+        // Build query constraints — push as much filtering to Firestore as possible
+        const constraints: any[] = [collection(db, "portfolio")];
+        const qConstraints: any[] = [];
+
+        // Server-side category filter (avoids scanning entire collection)
+        if (filterCategory && filterCategory !== 'all') {
+            qConstraints.push(where("category", "==", filterCategory));
+        }
+        // Note: we do NOT add a server-side videoUrl filter here because
+        // Firestore requires inequality filters and orderBy to be on the same field.
+        // Type filtering (photo vs video) is done client-side after fetch.
+
+        qConstraints.push(orderBy("sortOrder", "asc"), limit(FETCH_SIZE));
+        if (cursor) qConstraints.push(startAfter(cursor));
+
+        let snap;
+        try {
+            snap = await getDocs(query(collection(db, "portfolio"), ...qConstraints));
+        } catch {
+            // Fallback: if index missing, do a simple category-only query without orderBy
+            const fallbackConstraints: any[] = [];
+            if (filterCategory && filterCategory !== 'all') {
+                fallbackConstraints.push(where("category", "==", filterCategory));
+            }
+            fallbackConstraints.push(limit(FETCH_SIZE));
+            if (cursor) fallbackConstraints.push(startAfter(cursor));
+            snap = await getDocs(query(collection(db, "portfolio"), ...fallbackConstraints));
+        }
+
+        const allDocs = snap.docs;
+        const hasMore = allDocs.length > pageSize;
+        const pageDocs = hasMore ? allDocs.slice(0, pageSize) : allDocs;
+        const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
+
+        let items = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
+
+        // Client-side type filter as safety net (handles items without videoUrl field)
+        if (filterType === 'video') items = items.filter(i => !!i.videoUrl);
+        if (filterType === 'photo') items = items.filter(i => !i.videoUrl && !!i.image);
+
+        const result = { items, lastDoc: lastPageDoc, hasMore };
+
+        // Cache first-page results
+        if (!cursor) {
+            this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
+        }
+
+        return result;
+    },
+
+    // Call this after any create/update/delete to invalidate stale cache
+    invalidateCache() {
+        this._pageCache.clear();
     },
 
     async getFeatured(): Promise<PortfolioItem[]> {
+        // No orderBy here — avoids requiring a composite index for (featured, date).
+        // Sorting is done client-side by sortOrder after fetch.
         const snap = await getDocs(
             query(
                 collection(db, "portfolio"),
-                where("featured", "==", true),
-                orderBy("date", "desc")
+                where("featured", "==", true)
             )
         );
         const items = snap.docs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
