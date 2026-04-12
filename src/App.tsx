@@ -906,8 +906,10 @@ function PortfolioSection() {
             <button
               key={tab.id}
               onClick={() => {
-                setMainTab(tab.id as any);
-                setSubFilter('all');
+                const newTab = tab.id as 'photo' | 'video';
+                setMainTab(newTab);
+                // Default to Real Estate when switching to Photos; reset to All for Videos
+                setSubFilter(newTab === 'photo' ? 'real-estate' : 'all');
               }}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${mainTab === tab.id
                 ? 'bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white shadow-lg scale-105'
@@ -923,15 +925,18 @@ function PortfolioSection() {
         {/* Sub-Filter Tabs */}
         {availableSubCategories.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-10 animate-in fade-in slide-in-from-top-2 duration-500">
-            <button
-              onClick={() => setSubFilter('all')}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === 'all'
-                ? 'bg-[#8f5e25] text-white'
-                : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
-                }`}
-            >
-              All {mainTab === 'photo' ? 'Photos' : 'Videos'}
-            </button>
+            {/* Show 'All Videos' only for the video tab; no 'All Photos' for the photo tab */}
+            {mainTab === 'video' && (
+              <button
+                onClick={() => setSubFilter('all')}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === 'all'
+                  ? 'bg-[#8f5e25] text-white'
+                  : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
+                  }`}
+              >
+                All Videos
+              </button>
+            )}
             {availableSubCategories.map(cat => (
               <button
                 key={cat}
