@@ -326,32 +326,37 @@ export const useStore = create<AppState>()(
       },
 
       loadAdminData: async () => {
-        try {
-          const [clients, bookings, invoices, projects, carouselVids, messages, payments, portfolio, portfolioCats] = await Promise.all([
-            clientsService.getAll(),
-            bookingsService.getAll(),
-            invoicesService.getAll(),
-            projectsService.getAll(),
-            carouselVideosService.getAll(),
-            contactMessagesService.getAll(),
-            paymentsService.getAll(),
-            portfolioService.getAll(),
-            portfolioCategoriesService.getAll(),
-          ]);
-          set({
-            clients,
-            allBookings: bookings,
-            allInvoices: invoices,
-            allProjects: projects,
-            carouselVideos: carouselVids,
-            contactMessages: messages,
-            allPayments: payments,
-            portfolioItems: portfolio,
-            portfolioCategories: portfolioCats,
-          });
-        } catch (error) {
-          console.error('Failed to load admin data:', error);
-        }
+        const serviceNames = ['clients','bookings','invoices','projects','carouselVids','messages','payments','portfolio','portfolioCats'];
+        const results = await Promise.allSettled([
+          clientsService.getAll(),
+          bookingsService.getAll(),
+          invoicesService.getAll(),
+          projectsService.getAll(),
+          carouselVideosService.getAll(),
+          contactMessagesService.getAll(),
+          paymentsService.getAll(),
+          portfolioService.getAll(),
+          portfolioCategoriesService.getAll(),
+        ]);
+        // Log any individual failures without blocking the rest
+        results.forEach((r, i) => {
+          if (r.status === 'rejected') {
+            console.error(`[loadAdminData] ${serviceNames[i]} failed:`, r.reason);
+          }
+        });
+        const val = (i: number, fallback: any) =>
+          results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<any>).value : fallback;
+        set({
+          clients:           val(0, []),
+          allBookings:       val(1, []),
+          allInvoices:       val(2, []),
+          allProjects:       val(3, []),
+          carouselVideos:    val(4, []),
+          contactMessages:   val(5, []),
+          allPayments:       val(6, []),
+          portfolioItems:    val(7, []),
+          portfolioCategories: val(8, []),
+        });
       },
 
       refreshData: () => {
