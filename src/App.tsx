@@ -828,8 +828,12 @@ function PortfolioSection() {
   // Format slug label: 'real-estate' → 'Real Estate'
   const formatLabel = (slug: string) =>
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  // Use all Firestore categories as sub-filter tabs (hidden categories with 0 items are filtered server-side)
-  const availableSubCategories = portfolioCategories.filter(c => c !== 'video');
+  // Categories hidden from the Videos tab (photo-only categories)
+  const VIDEO_HIDDEN_CATS = new Set(['drone', 'portrait', 'food', 'video']);
+  // Use Firestore categories as sub-filter tabs; hide photo-only categories from the video tab
+  const availableSubCategories = portfolioCategories.filter(c =>
+    mainTab === 'video' ? !VIDEO_HIDDEN_CATS.has(c) : c !== 'video'
+  );
 
   // Load the first page whenever tab or filter changes
   useEffect(() => {
