@@ -14,6 +14,7 @@ import {
     Timestamp,
     serverTimestamp,
     setDoc,
+    writeBatch,
     type DocumentSnapshot,
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -568,6 +569,15 @@ export const portfolioService = {
 
     async delete(id: string): Promise<void> {
         await deleteDoc(doc(db, "portfolio", id));
+    },
+    // Batch-update sortOrder for multiple items in a single Firestore write
+    async batchUpdateSortOrder(updates: { id: string; sortOrder: number }[]): Promise<void> {
+        const batch = writeBatch(db);
+        for (const { id, sortOrder } of updates) {
+            batch.update(doc(db, "portfolio", id), { sortOrder });
+        }
+        await batch.commit();
+        this.invalidateCache();
     },
 };
 

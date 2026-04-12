@@ -3,7 +3,7 @@ import {
     Calendar, Shield, Plus, Database, Edit, BarChart3, Users, User,
     Star, Trash2, Check,
     X, Video, Image as ImageIcon, Package, Mail, MailOpen,
-    Play, TrendingUp, AlertCircle, Loader2, CreditCard
+    Play, TrendingUp, AlertCircle, Loader2, CreditCard, GripVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import type {
 import { ProjectsTab, InvoicesTab } from '@/components/AdminProjectTabs';
 import { TransactionsTab } from '@/components/AdminTransactionsTab';
 import { AdminManagementTab } from '@/components/AdminManagementTab';
+import { PortfolioReorderTab } from '@/components/PortfolioReorderTab';
 
 type View = 'home' | 'portfolio' | 'services' | 'booking' | 'about' | 'contact' | 'portal' | 'admin' | 'login';
 
@@ -125,6 +126,7 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                         <TabsTrigger value="testimonials" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white"><Star className="w-4 h-4" />Testimonials</TabsTrigger>
                         <TabsTrigger value="carousel"><Play className="w-4 h-4 mr-1" />Carousel</TabsTrigger>
                         <TabsTrigger value="portfolio"><ImageIcon className="w-4 h-4 mr-1" />Portfolio</TabsTrigger>
+                        <TabsTrigger value="reorder"><GripVertical className="w-4 h-4 mr-1" />Reorder</TabsTrigger>
                         <TabsTrigger value="packages"><Package className="w-4 h-4 mr-1" />Packages</TabsTrigger>
                         <TabsTrigger value="messages">
                             <Mail className="w-4 h-4 mr-1" />Messages
@@ -213,6 +215,9 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
 
                     {/* ═══════ PORTFOLIO TAB ═══════ */}
                     <TabsContent value="portfolio"><PortfolioTab items={portfolioItems} categories={portfolioCategories} onCreate={adminCreatePortfolioItem} onUpdate={adminUpdatePortfolioItem} onDelete={adminDeletePortfolioItem} onSetCategories={adminSetPortfolioCategories} onDeleteCategory={adminDeletePortfolioCategory} /></TabsContent>
+
+                    {/* ═══════ REORDER TAB ═══════ */}
+                    <TabsContent value="reorder"><PortfolioReorderTab items={portfolioItems} categories={portfolioCategories} /></TabsContent>
 
                     {/* ═══════ PACKAGES TAB ═══════ */}
                     <TabsContent value="packages"><PackagesTab services={services} addOns={addOns} onCreateService={adminCreateService} onUpdateService={adminUpdateService} onDeleteService={adminDeleteService} onCreateAddOn={adminCreateAddOn} onUpdateAddOn={adminUpdateAddOn} onDeleteAddOn={adminDeleteAddOn} /></TabsContent>
@@ -441,29 +446,32 @@ function PortfolioTab({ items, categories, onCreate, onUpdate, onDelete, onSetCa
         setCompressionStats(null);
 
         try {
-            // Auto-compress video files before uploading
+            // Auto-compress video files before uploading (with graceful fallback)
             if (field === 'videoUrl' && file.type.startsWith('video/')) {
-                setCompressionProgress({ stage: 'loading', progress: 0, message: 'Loading video processor…' });
-
-                const result = await compressVideo(file, (p) => {
-                    setCompressionProgress(p);
-                });
-
-                setCompressionStats({
-                    originalMB: result.originalSizeMB,
-                    compressedMB: result.compressedSizeMB,
-                    ratio: result.compressionRatio,
-                });
-
-                // Upload the compressed MP4
-                const videoUrl = await storageService.uploadFile(result.videoFile, path);
-                setForm(prev => ({ ...prev, [field]: videoUrl }));
-
-                // Auto-populate thumbnail if not already set
-                if (!form.thumbnail) {
-                    const thumbUrl = await storageService.uploadFile(result.thumbnailFile, 'portfolio/thumbnails');
-                    setForm(prev => ({ ...prev, thumbnail: thumbUrl }));
+                let uploadFile: File = file;
+                try {
+                    setCompressionProgress({ stage: 'loading', progress: 0, message: 'Loading video processor…' });
+                    const result = await compressVideo(file, (p) => {
+                        setCompressionProgress(p);
+                    });
+                    setCompressionStats({
+                        originalMB: result.originalSizeMB,
+                        compressedMB: result.compressedSizeMB,
+                        ratio: result.compressionRatio,
+                    });
+                    uploadFile = result.videoFile;
+                    // Auto-populate thumbnail if not already set
+                    if (!form.thumbnail) {
+                        const thumbUrl = await storageService.uploadFile(result.thumbnailFile, 'portfolio/thumbnails');
+                        setForm(prev => ({ ...prev, thumbnail: thumbUrl }));
+                    }
+                } catch (compressionErr) {
+                    // Compression failed (e.g. FFmpeg WASM unavailable) — upload original file
+                    console.warn('Video compression skipped, uploading original:', compressionErr);
+                    setCompressionProgress(null);
                 }
+                const videoUrl = await storageService.uploadFile(uploadFile, path);
+                setForm(prev => ({ ...prev, [field]: videoUrl }));
             } else {
                 const url = await storageService.uploadFile(file, path);
                 setForm(prev => ({ ...prev, [field]: url }));
