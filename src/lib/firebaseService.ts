@@ -443,7 +443,6 @@ export const portfolioService = {
     },
 
     // Paginated fetch — returns items + the last document snapshot for cursor.
-    // Keeps fetching batches until we collect `pageSize` matching items or exhaust all docs.
     // In-memory cache: key → { items, lastDoc, hasMore, ts }
     _pageCache: new Map<string, { items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean; ts: number }>(),
     _CACHE_TTL: 5 * 60 * 1000, // 5 minutes
@@ -454,7 +453,6 @@ export const portfolioService = {
         filterType?: 'photo' | 'video',
         filterCategory?: string
     ): Promise<{ items: PortfolioItem[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
-        // Only cache first-page requests (cursor === null)
         const cacheKey = `${filterType}|${filterCategory ?? 'all'}|${pageSize}`;
         if (!cursor) {
             const cached = this._pageCache.get(cacheKey);
@@ -463,59 +461,108 @@ export const portfolioService = {
             }
         }
 
-        // When filtering by type without a category, we need to over-fetch because
-        // client-side type filtering will discard many items. Use a 10x multiplier
-        // for the "All Videos" case to ensure enough items are returned.
-        const needsOverfetch = filterType === 'video' && !filterCategory;
-        const FETCH_SIZE = needsOverfetch ? pageSize * 10 : pageSize + 1;
-        // Build query constraints — push as much filtering to Firestore as possible
-        const qConstraints: any[] = [];
+        const FETCH_SIZE = pageSize + 1;
+        let snap;
 
-        // Server-side category filter (avoids scanning entire collection)
+        // ── Strategy A: Video tab with a specific category ──────────────────────
+        // Uses composite index: category ASC + sortOrder ASC (already created)
+        // Then client-side filters to only items with videoUrl.
+        if (filterType === 'video' && filterCategory && filterCategory !== 'all') {
+            try {
+                const constraints: any[] = [
+                    where("category", "==", filterCategory),
+                    orderBy("sortOrder", "asc"),
+                    limit(FETCH_SIZE * 5), // over-fetch since not all category items are videos
+                ];
+                if (cursor) constraints.push(startAfter(cursor));
+                snap = await getDocs(query(collection(db, "portfolio"), ...constraints));
+            } catch {
+                const constraints: any[] = [where("category", "==", filterCategory), limit(FETCH_SIZE * 5)];
+                if (cursor) constraints.push(startAfter(cursor));
+                snap = await getDocs(query(collection(db, "portfolio"), ...constraints));
+            }
+            const videoDocs = snap.docs.filter(d => !!(d.data() as any).videoUrl);
+            const hasMore = videoDocs.length > pageSize;
+            const pageDocs = hasMore ? videoDocs.slice(0, pageSize) : videoDocs;
+            const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
+            const items = pageDocs.map(d => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
+            const result = { items, lastDoc: lastPageDoc, hasMore };
+            if (!cursor) this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
+            return result;
+        }
+
+        // ── Strategy B: All Videos (no category filter) ──────────────────────────
+        // Uses: where("videoUrl", "!=", "") + orderBy("videoUrl") + orderBy("sortOrder")
+        // Requires a Firestore index: videoUrl ASC + sortOrder ASC
+        // Falls back to fetching all docs and filtering client-side if index missing.
+        if (filterType === 'video' && (!filterCategory || filterCategory === 'all')) {
+            try {
+                const constraints: any[] = [
+                    where("videoUrl", "!=", ""),
+                    orderBy("videoUrl", "asc"),
+                    orderBy("sortOrder", "asc"),
+                    limit(FETCH_SIZE),
+                ];
+                if (cursor) constraints.push(startAfter(cursor));
+                snap = await getDocs(query(collection(db, "portfolio"), ...constraints));
+                const allDocs = snap.docs;
+                const hasMore = allDocs.length > pageSize;
+                const pageDocs = hasMore ? allDocs.slice(0, pageSize) : allDocs;
+                const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
+                const items = pageDocs.map(d => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
+                const result = { items, lastDoc: lastPageDoc, hasMore };
+                if (!cursor) this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
+                return result;
+            } catch {
+                // Index not yet ready — fall back to fetching a large batch and filtering client-side
+                const LARGE_FETCH = 500;
+                const constraints: any[] = [limit(LARGE_FETCH)];
+                if (cursor) constraints.push(startAfter(cursor));
+                snap = await getDocs(query(collection(db, "portfolio"), ...constraints));
+                const videoDocs = snap.docs.filter(d => !!(d.data() as any).videoUrl);
+                const hasMore = videoDocs.length > pageSize;
+                const pageDocs = hasMore ? videoDocs.slice(0, pageSize) : videoDocs;
+                const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
+                const items = pageDocs.map(d => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
+                const result = { items, lastDoc: lastPageDoc, hasMore };
+                if (!cursor) this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
+                return result;
+            }
+        }
+
+        // ── Strategy C: Photo tab (with or without category) ─────────────────────
+        // Uses composite index: category ASC + sortOrder ASC (already created)
+        const qConstraints: any[] = [];
         if (filterCategory && filterCategory !== 'all') {
             qConstraints.push(where("category", "==", filterCategory));
         }
-        // Note: we do NOT add a server-side videoUrl filter here because
-        // Firestore requires inequality filters and orderBy to be on the same field.
-        // Type filtering (photo vs video) is done client-side after fetch.
-
         qConstraints.push(orderBy("sortOrder", "asc"), limit(FETCH_SIZE));
         if (cursor) qConstraints.push(startAfter(cursor));
 
-        let snap;
         try {
             snap = await getDocs(query(collection(db, "portfolio"), ...qConstraints));
         } catch {
-            // Fallback: if index missing, do a simple category-only query without orderBy
-            const fallbackConstraints: any[] = [];
+            const fallback: any[] = [];
             if (filterCategory && filterCategory !== 'all') {
-                fallbackConstraints.push(where("category", "==", filterCategory));
+                fallback.push(where("category", "==", filterCategory));
             }
-            fallbackConstraints.push(limit(FETCH_SIZE));
-            if (cursor) fallbackConstraints.push(startAfter(cursor));
-            snap = await getDocs(query(collection(db, "portfolio"), ...fallbackConstraints));
+            fallback.push(limit(FETCH_SIZE));
+            if (cursor) fallback.push(startAfter(cursor));
+            snap = await getDocs(query(collection(db, "portfolio"), ...fallback));
         }
 
         const allDocs = snap.docs;
-
-        // Client-side type filter
-        let filteredDocs = allDocs;
-        if (filterType === 'video') filteredDocs = allDocs.filter(d => !!(d.data() as any).videoUrl);
-        if (filterType === 'photo') filteredDocs = allDocs.filter(d => !(d.data() as any).videoUrl && !!(d.data() as any).image);
+        // For photo tab: exclude items that have a videoUrl
+        const filteredDocs = filterType === 'photo'
+            ? allDocs.filter(d => !(d.data() as any).videoUrl && !!(d.data() as any).image)
+            : allDocs;
 
         const hasMore = filteredDocs.length > pageSize;
         const pageDocs = hasMore ? filteredDocs.slice(0, pageSize) : filteredDocs;
         const lastPageDoc = pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null;
-
-        const items = pageDocs.map((d) => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
-
+        const items = pageDocs.map(d => ({ id: d.id, ...normalizePortfolioDoc(convertTimestamps(d.data())) } as PortfolioItem));
         const result = { items, lastDoc: lastPageDoc, hasMore };
-
-        // Cache first-page results
-        if (!cursor) {
-            this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
-        }
-
+        if (!cursor) this._pageCache.set(cacheKey, { ...result, ts: Date.now() });
         return result;
     },
 
