@@ -413,7 +413,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 id: 'home-bc',
                 name: 'Brand & Commercial',
                 description: 'Elevated visual storytelling for founders, product launches, campaigns, and lifestyle marketing.',
-                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+                image: 'https://images.pexels.com/photos/4212980/pexels-photo-4212980.jpeg?auto=compress&cs=tinysrgb&w=800',
                 price: 'From $1,250',
                 tab: 'brand-commercial',
               },
@@ -421,7 +421,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 id: 'home-sc',
                 name: 'Social & Content',
                 description: 'Scroll-stopping content for Instagram, TikTok, paid social, and professional headshots.',
-                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/social-media-shoot-LyWfbX4SNNFrDSig4zpQy8.webp',
+                image: 'https://images.pexels.com/photos/33568641/pexels-photo-33568641.jpeg?auto=compress&cs=tinysrgb&w=800',
                 price: 'From $395',
                 tab: 'social-content',
               },
@@ -429,7 +429,7 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
                 id: 'home-eh',
                 name: 'Events & Hospitality',
                 description: 'Refined coverage for events, hotel & Airbnb listings, and high-end food and beverage brands.',
-                image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/event-coverage-AYkaFGXnTk26ENBKv7bUHz.webp',
+                image: 'https://images.pexels.com/photos/34672100/pexels-photo-34672100.jpeg?auto=compress&cs=tinysrgb&w=800',
                 price: 'From $850',
                 tab: 'events-hospitality',
               },
@@ -1047,7 +1047,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Brand & Promotional Photography',
         description: 'Elevated visual storytelling for founders, teams, service businesses, launches, and lifestyle-driven marketing.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+        image: 'https://images.pexels.com/photos/4212980/pexels-photo-4212980.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$1,250*', badge: '', includes: ['Up to 2 hours', '1 location or setup', '20 edited images'] },
           { name: 'Standard', price: '$2,200*', badge: 'Most Popular', includes: ['Up to 4 hours', 'Up to 2 locations or multiple setups', '40 edited images', '1 edited vertical reel'] },
@@ -1057,7 +1057,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Product Photography',
         description: 'Clean, elevated product imagery for e-commerce, launches, ads, and brand storytelling.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/product-photography-mqV6ZuVThDE5XL28KZL6Rw.webp',
+        image: 'https://images.pexels.com/photos/5560473/pexels-photo-5560473.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$1,250*', badge: '', includes: ['Half-day shoot', 'Simple styling and clean setup', 'Up to 15 final edited images', 'Basic retouching'] },
           { name: 'Standard', price: '$2,400*', badge: 'Most Popular', includes: ['Full-day shoot', 'Multiple setups, angles, and variations', 'Up to 30 final edited images', 'Advanced retouching'] },
@@ -1067,7 +1067,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Brand Campaign Day Rates',
         description: 'For larger commercial productions, ad campaigns, product launches, and multi-deliverable shoots.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/brand-photography-Y3zyHDfCkfZQMeidbtUc6P.webp',
+        image: 'https://images.pexels.com/photos/3928550/pexels-photo-3928550.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Half-Day Campaign Rate', price: '$2,500*', badge: '', includes: ['Up to 4 hours production', 'Creative direction', 'Photo or hybrid photo/video capture'] },
           { name: 'Full-Day Campaign Rate', price: '$4,500*', badge: 'Most Popular', includes: ['Up to 8 hours production', 'Creative direction and shot planning', 'Photo or hybrid photo/video capture', 'Best for launches and multi-platform campaigns'] },
@@ -1082,7 +1082,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Social Media Content Shoots',
         description: 'Built for brands that need scroll-stopping content for Instagram, TikTok, paid social, and web.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/social-media-shoot-LyWfbX4SNNFrDSig4zpQy8.webp',
+        image: 'https://images.pexels.com/photos/33568641/pexels-photo-33568641.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$1,250*', badge: '', includes: ['Up to 4 hours on-site', '1 location', '1 edited vertical reel', '20 edited photo selects', 'Light creative direction and shot planning', 'Organic social and web use'] },
           { name: 'Standard', price: '$2,200*', badge: 'Most Popular', includes: ['Up to 8 hours on-site', 'Up to 2 locations or multiple setups', '2 edited vertical reels', '40 edited photo selects', 'Expanded creative direction', 'Organic social and web use'] },
@@ -1092,7 +1092,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Headshots, Portraits & Studio Photography',
         description: 'Professional, polished imagery for founders, teams, talent, and personal brands.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/headshot-portrait-6kNVZzXmWWSMjfAgvPBTGc.webp',
+        image: 'https://images.pexels.com/photos/30198184/pexels-photo-30198184.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$395*', badge: '', includes: ['Up to 30 minutes', '1 look', '1 retouched final image', 'Private proof gallery'] },
           { name: 'Standard', price: '$695*', badge: 'Most Popular', includes: ['Up to 60 minutes', '2 looks', '3 retouched final images', 'Private proof gallery', 'More variety in posing and framing'] },
@@ -1108,7 +1108,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Event Coverage',
         description: 'Refined event photography for launches, private gatherings, corporate events, dinners, and brand activations.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/event-coverage-AYkaFGXnTk26ENBKv7bUHz.webp',
+        image: 'https://images.pexels.com/photos/34672100/pexels-photo-34672100.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$850*', badge: '', includes: ['Up to 2 hours of coverage', '50+ edited images', 'Online gallery delivery'] },
           { name: 'Standard', price: '$1,450*', badge: 'Most Popular', includes: ['Up to 4 hours of coverage', '125+ edited images', 'Online gallery delivery', 'Ideal for brand events, dinners, and networking events'] },
@@ -1118,7 +1118,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Hotel & Airbnb Photography',
         description: 'Hospitality-focused imagery designed to elevate bookings, listings, websites, and brand perception.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/hotel-airbnb-JB99TXMwfTH4d66P6S99VW.webp',
+        image: 'https://images.pexels.com/photos/36354489/pexels-photo-36354489.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$850*', badge: '', includes: ['20 edited images', 'Interior and exterior coverage', 'Ideal for smaller properties or listing refreshes'] },
           { name: 'Standard', price: '$1,450*', badge: 'Most Popular', includes: ['35 edited images', 'Interior, exterior, and detail shots', 'Ideal for stronger listing and website presentation'] },
@@ -1128,7 +1128,7 @@ const NEW_SERVICE_TABS = [
       {
         title: 'Food Photography',
         description: 'High-end food and beverage imagery for restaurants, hospitality brands, menus, launches, and social campaigns.',
-        image: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663394219030/XeMxup53e8UoF53MNAiqKM/food-photography-bz5sMSnuys9aYQH4nZHtBu.webp',
+        image: 'https://images.pexels.com/photos/26776850/pexels-photo-26776850.jpeg?auto=compress&cs=tinysrgb&w=800',
         packages: [
           { name: 'Basic', price: '$950*', badge: '', includes: ['Up to 8 final edited images', '1 to 2 hero setups', 'Basic styling guidance'] },
           { name: 'Standard', price: '$1,650*', badge: 'Most Popular', includes: ['Up to 15 final edited images', '3 to 4 styled setups', 'Hero shots and detail shots', 'Ideal for seasonal updates and social content'] },
