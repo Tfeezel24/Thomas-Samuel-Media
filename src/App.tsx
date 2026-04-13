@@ -1394,105 +1394,152 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
           </>
         )}
 
-        {/* ── NEW SERVICE TABS ── */}
-        {NEW_SERVICE_TABS.map(tab => activeTab === tab.id && (
-          <div key={tab.id}>
-            {tab.sections.map((section, si) => (
-              <div key={si} className="mb-14">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold gradient-text mb-1">{section.title}</h2>
-                  <p className="text-muted-foreground text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{section.description}</p>
+        {/* ── NEW SERVICE TABS (hybrid: Firestore if available, else hardcoded) ── */}
+        {NEW_SERVICE_TABS.map(tab => activeTab === tab.id && (() => {
+          // Use Firestore services if they exist for this tab, otherwise fall back to hardcoded
+          const firestoreServices = (services as any[])
+            .filter((s: any) => s.tabCategory === tab.id && getServiceActive(s))
+            .sort((a: any, b: any) => (a.order ?? a.sortOrder ?? 99) - (b.order ?? b.sortOrder ?? 99));
+
+          // Normalize to a common shape: { sectionTitle, pkgs[] }
+          let sectionGroups: Array<{ title: string; description: string; image: string; pkgs: any[] }>;
+          if (firestoreServices.length > 0) {
+            const sectionMap: Record<string, any[]> = {};
+            firestoreServices.forEach((s: any) => {
+              const sec = s.serviceSection || 'Other';
+              if (!sectionMap[sec]) sectionMap[sec] = [];
+              sectionMap[sec].push(s);
+            });
+            sectionGroups = Object.entries(sectionMap).map(([title, pkgs]) => ({
+              title,
+              description: pkgs[0]?.description || '',
+              image: getServiceImage(pkgs[0]) || '',
+              pkgs,
+            }));
+          } else {
+            sectionGroups = tab.sections.map(section => ({
+              title: section.title,
+              description: section.description,
+              image: section.image,
+              pkgs: section.packages.map(pkg => ({
+                id: `static-${tab.id}-${pkg.name}`,
+                name: pkg.name,
+                price: pkg.price,
+                badge: pkg.badge,
+                includes: pkg.includes,
+                image: section.image,
+                description: section.description,
+              })),
+            }));
+          }
+
+          return (
+            <div key={tab.id}>
+              {sectionGroups.map((group, gi) => (
+                <div key={gi} className="mb-14">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold gradient-text mb-1">{group.title}</h2>
+                    <p className="text-muted-foreground text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{group.description}</p>
+                  </div>
+                  <div className={`grid gap-6 ${
+                    group.pkgs.length === 2
+                      ? 'md:grid-cols-2 max-w-3xl'
+                      : 'md:grid-cols-2 lg:grid-cols-3'
+                  }`}>
+                    {group.pkgs.map((pkg: any, pi: number) => {
+                      const badge = pkg.badge || '';
+                      const imgSrc = getServiceImage(pkg) || group.image;
+                      const displayPrice = getServiceDisplayPrice(pkg);
+                      const includes = getServiceIncludes(pkg);
+                      return (
+                        <div key={pkg.id || pi} className="relative">
+                          {badge && (
+                            <div className="absolute top-3 right-3 z-10">
+                              <Badge className="bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white border-0 shadow-lg text-xs">{badge}</Badge>
+                            </div>
+                          )}
+                          <Card className="flex flex-col gold-border card-lift relative overflow-hidden !pt-0 !gap-0 h-full">
+                            {imgSrc && (
+                              <div className="aspect-[16/10] overflow-hidden">
+                                <img src={imgSrc} alt={pkg.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <CardHeader className="pb-2 pt-4">
+                              <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                              <CardDescription className="text-sm leading-relaxed line-clamp-2 md:line-clamp-none">
+                                {pkg.description || group.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 pt-2">
+                              <div className="space-y-4">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl font-bold text-[#8f5e25]">{displayPrice}</span>
+                                  <span className="text-xs text-muted-foreground">starting from</span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium mb-2">What's included:</p>
+                                  <ul className="space-y-1.5">
+                                    {includes.map((item: string, ii: number) => (
+                                      <li key={ii} className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-[#cbb26a] flex-shrink-0" />
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </CardContent>
+                            <CardFooter className="pb-4 pt-2">
+                              <Button className="w-full btn-gold text-white" onClick={() => setView('booking')}>
+                                Book This Package
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className={`grid gap-6 ${
-                  section.packages.length === 2
-                    ? 'md:grid-cols-2 max-w-3xl'
-                    : 'md:grid-cols-2 lg:grid-cols-3'
-                }`}>
-                  {section.packages.map((pkg, pi) => (
-                    <div key={pi} className="relative">
-                      {pkg.badge && (
-                        <div className="absolute top-3 right-3 z-10">
-                          <Badge className="bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white border-0 shadow-lg text-xs">{pkg.badge}</Badge>
+              ))}
+
+              {/* Popular Add-Ons for new tabs */}
+              <div className="bg-card rounded-2xl p-8 border border-[#cbb26a]/20 mb-8">
+                <h2 className="text-2xl font-bold mb-2 gradient-text">Popular Add-Ons</h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                  {NEW_ADDONS.map((addon, ai) => (
+                    <div key={ai} className="bg-card p-4 rounded-lg border border-[#cbb26a]/20 hover:border-[#cbb26a]/50 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{addon.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
                         </div>
-                      )}
-                      <Card className="flex flex-col gold-border card-lift relative overflow-hidden !pt-0 !gap-0 h-full">
-                        <div className="aspect-[16/10] overflow-hidden">
-                          <img src={section.image} alt={pkg.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                        <div className="text-right flex-shrink-0">
+                          <span className="font-semibold text-[#8f5e25]">{addon.price}</span>
                         </div>
-                        <CardHeader className="pb-2 pt-4">
-                          <CardTitle className="text-lg">{pkg.name}</CardTitle>
-                          <CardDescription className="text-sm leading-relaxed line-clamp-2 md:line-clamp-none">
-                            {section.description}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 pt-2">
-                          <div className="space-y-4">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-bold text-[#8f5e25]">{pkg.price}</span>
-                              <span className="text-xs text-muted-foreground">starting from</span>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium mb-2">What's included:</p>
-                              <ul className="space-y-1.5">
-                                {pkg.includes.map((item, ii) => (
-                                  <li key={ii} className="text-sm text-muted-foreground flex items-center gap-2">
-                                    <Check className="w-4 h-4 text-[#cbb26a] flex-shrink-0" />
-                                    {item}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="pb-4 pt-2">
-                          <Button className="w-full btn-gold text-white" onClick={() => setView('booking')}>
-                            Book This Package
-                          </Button>
-                        </CardFooter>
-                      </Card>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
 
-            {/* Popular Add-Ons for new tabs */}
-            <div className="bg-card rounded-2xl p-8 border border-[#cbb26a]/20 mb-8">
-              <h2 className="text-2xl font-bold mb-2 gradient-text">Popular Add-Ons</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                {NEW_ADDONS.map((addon, ai) => (
-                  <div key={ai} className="bg-card p-4 rounded-lg border border-[#cbb26a]/20 hover:border-[#cbb26a]/50 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{addon.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="font-semibold text-[#8f5e25]">{addon.price}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {/* Notes */}
+              <div className="bg-card/50 rounded-xl p-6 border border-[#cbb26a]/10 mb-8">
+                <ul className="space-y-1.5">
+                  {['Half-day = up to 4 hours on-site', 'Full-day = up to 8 hours on-site', 'Standard turnaround: 5 to 7 business days unless otherwise noted', 'Custom quotes available for recurring content, multi-day productions, and commercial campaigns'].map((note, ni) => (
+                    <li key={ni} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-[#cbb26a] mt-0.5">•</span>
+                      {note}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
 
-            {/* Notes */}
-            <div className="bg-card/50 rounded-xl p-6 border border-[#cbb26a]/10 mb-8">
-              <ul className="space-y-1.5">
-                {['Half-day = up to 4 hours on-site', 'Full-day = up to 8 hours on-site', 'Standard turnaround: 5 to 7 business days unless otherwise noted', 'Custom quotes available for recurring content, multi-day productions, and commercial campaigns'].map((note, ni) => (
-                  <li key={ni} className="text-sm text-muted-foreground flex items-start gap-2">
-                    <span className="text-[#cbb26a] mt-0.5">•</span>
-                    {note}
-                  </li>
-                ))}
-              </ul>
+              <p className="text-xs text-muted-foreground text-center max-w-3xl mx-auto mb-8">
+                *All prices are starting at. Final pricing may vary based on scope, creative direction, location, licensing, talent, studio rental, styling, assistants, travel, rush turnaround, retouching, and other production needs.
+              </p>
             </div>
-
-            <p className="text-xs text-muted-foreground text-center max-w-3xl mx-auto mb-8">
-              *All prices are starting at. Final pricing may vary based on scope, creative direction, location, licensing, talent, studio rental, styling, assistants, travel, rush turnaround, retouching, and other production needs.
-            </p>
-          </div>
-        ))}
+          );
+        })())}
 
         {/* Custom Quote CTA */}
         <div className="mt-8 text-center bg-card rounded-2xl p-10 border border-[#cbb26a]/20">
