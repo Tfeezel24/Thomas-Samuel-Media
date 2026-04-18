@@ -71,9 +71,9 @@ function ConfirmDialog({
     );
 }
 
-// ─── Video First Frame (Static Thumbnail) ──────────────────────────────────────
-// Loads enough data for the browser to paint the first frame, then stops.
-// No autoplay, no seeking — simplest possible thumbnail.
+// ─── Video Thumbnail ───────────────────────────────────────────────────────────
+// Seeks to 1s to skip past the typical black fade-in intro, then displays
+// that frame as a static thumbnail. Falls back to frame 0 if video is shorter.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [ready, setReady] = useState(false);
@@ -81,9 +81,27 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-        const onData = () => setReady(true);
-        video.addEventListener('loadeddata', onData);
-        return () => video.removeEventListener('loadeddata', onData);
+
+        const doSeek = () => {
+            // Seek past typical fade-in. Use 1s unless the video is shorter.
+            const target = Math.min(1.0, Math.max(0, (video.duration || 0) - 0.1));
+            if (Number.isFinite(target) && target > 0) {
+                try { video.currentTime = target; } catch { /* ignore */ }
+            } else {
+                setReady(true);
+            }
+        };
+        const onSeeked = () => setReady(true);
+        const onError = () => setReady(true); // show black bg rather than infinite spinner
+
+        video.addEventListener('loadedmetadata', doSeek);
+        video.addEventListener('seeked', onSeeked);
+        video.addEventListener('error', onError);
+        return () => {
+            video.removeEventListener('loadedmetadata', doSeek);
+            video.removeEventListener('seeked', onSeeked);
+            video.removeEventListener('error', onError);
+        };
     }, [videoUrl]);
 
     return (
@@ -97,6 +115,7 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 preload="auto"
                 muted
                 playsInline
+                crossOrigin="anonymous"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
             />
             {!ready && (
