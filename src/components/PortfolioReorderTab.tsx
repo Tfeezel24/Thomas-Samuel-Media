@@ -71,10 +71,9 @@ function ConfirmDialog({
     );
 }
 
-// ─── Video Thumbnail (Auto-Playing) ────────────────────────────────────────────
-// Videos autoplay muted + looped so the admin can see dynamic previews.
-// Bandwidth is controlled by compressing source files (see scripts/compress-videos.mjs),
-// not by disabling playback.
+// ─── Video First Frame (Static Thumbnail) ──────────────────────────────────────
+// Loads enough data for the browser to paint the first frame, then stops.
+// No autoplay, no seeking — simplest possible thumbnail.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [ready, setReady] = useState(false);
@@ -96,8 +95,6 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 ref={videoRef}
                 src={videoUrl}
                 preload="auto"
-                autoPlay
-                loop
                 muted
                 playsInline
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
