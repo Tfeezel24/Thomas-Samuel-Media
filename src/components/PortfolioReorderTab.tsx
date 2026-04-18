@@ -72,8 +72,8 @@ function ConfirmDialog({
 }
 
 // ─── Video Still Frame ─────────────────────────────────────────────────────────
-// Shows a paused video element at frame 0.5s as a still-frame thumbnail.
-// No canvas/CORS needed — the browser renders the frame natively.
+// Seeks directly to 15% into the video (min 2s) then waits for `seeked` to
+// confirm the frame is decoded. No autoPlay — avoids browser throttling.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [frameReady, setFrameReady] = useState(false);
@@ -81,19 +81,20 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-        // Autoplay briefly to get past any black intro frames, pause at 1.5s
-        const onTime = () => {
-            if (video.currentTime >= 1.5) {
-                video.pause();
-                setFrameReady(true);
-            }
+
+        const seekToFrame = () => {
+            // 15% in, but at least 2s to clear black fade-ins, capped at 5s
+            video.currentTime = Math.min(Math.max(video.duration * 0.15, 2), 5);
         };
-        // Fallback: if video is shorter than 1.5s, show whatever we have
+        const onSeeked = () => setFrameReady(true);
         const onEnded = () => setFrameReady(true);
-        video.addEventListener('timeupdate', onTime);
+
+        video.addEventListener('loadedmetadata', seekToFrame);
+        video.addEventListener('seeked', onSeeked);
         video.addEventListener('ended', onEnded);
         return () => {
-            video.removeEventListener('timeupdate', onTime);
+            video.removeEventListener('loadedmetadata', seekToFrame);
+            video.removeEventListener('seeked', onSeeked);
             video.removeEventListener('ended', onEnded);
         };
     }, [videoUrl]);
@@ -107,7 +108,6 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 ref={videoRef}
                 src={videoUrl}
                 preload="auto"
-                autoPlay
                 muted
                 playsInline
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${frameReady ? 'opacity-100' : 'opacity-0'}`}
