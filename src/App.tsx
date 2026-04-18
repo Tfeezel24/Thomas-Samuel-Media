@@ -670,11 +670,13 @@ function HomeSection({ setView }: { setView: (v: View) => void }) {
 function PortfolioVideo({ item }: { item: PortfolioItem }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [inView, setInView] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
 
   // Two-stage IntersectionObserver:
   // 1. Preload trigger: 400px before entering viewport — mounts the video element with preload="auto"
@@ -759,44 +761,92 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
     }
   }, [isVisible, inView]);
 
+  // Auto-capture first frame from video as thumbnail when no stored thumbnail exists
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !inView || (item.thumbnail || item.image)) return;
+
+    const onMeta = () => { video.currentTime = 0.5; };
+    const onSeeked = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 360;
+      try {
+        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const thumb = canvas.toDataURL('image/jpeg', 0.8);
+        if (thumb && thumb !== 'data:,') setCapturedThumb(thumb);
+      } catch {
+        // CORS blocked — use gradient fallback instead
+      }
+    };
+
+    video.addEventListener('loadedmetadata', onMeta);
+    video.addEventListener('seeked', onSeeked);
+    return () => {
+      video.removeEventListener('loadedmetadata', onMeta);
+      video.removeEventListener('seeked', onSeeked);
+    };
+  }, [inView, item.thumbnail, item.image]);
+
   const formatLabel = (slug: string) =>
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
+  // Effective thumbnail: stored image, or auto-captured frame, or null (show gradient)
+  const thumbSrc = item.thumbnail || item.image || capturedThumb || null;
+
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-black overflow-hidden">
-      {/* Thumbnail shown until video is preloaded and ready */}
-      {(!inView || !isReady) && !hasError && (
+    <div
+      ref={containerRef}
+      className="w-full h-full relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #1a1208 0%, #2c1e0d 50%, #1a1208 100%)' }}
+    >
+      {/* Hidden canvas for first-frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Thumbnail / first-frame — shown until video is ready */}
+      {(!inView || !isReady) && !hasError && thumbSrc && (
         <img
-          src={item.thumbnail || item.image}
+          src={thumbSrc}
           alt=""
           className="absolute inset-0 w-full h-full object-cover z-10"
-          loading="lazy"
-          decoding="async"
+          loading="eager"
         />
       )}
-      {/* Buffering spinner — only shown when in view but not yet ready */}
+
+      {/* Branded placeholder when no thumbnail yet — shows play icon on gradient */}
+      {(!inView || !isReady) && !hasError && !thumbSrc && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
+            <Play className="w-6 h-6 text-[#cbb26a] ml-1" />
+          </div>
+        </div>
+      )}
+
+      {/* Loading spinner — only when visible and actively buffering */}
       {inView && isVisible && !isReady && !hasError && (
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full border-2 border-[#cbb26a]/40 border-t-[#cbb26a] animate-spin" />
         </div>
       )}
+
       {/* Error fallback */}
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-2">
-          <img
-            src={item.thumbnail || item.image}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
-          />
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-2">
+          {thumbSrc && (
+            <img src={thumbSrc} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+          )}
           <Play className="w-10 h-10 text-[#cbb26a] relative z-10" />
         </div>
       )}
-      {/* Video element — mounted as soon as near viewport, preloads aggressively */}
+
+      {/* Video element — mounted when near viewport */}
       {inView && !hasError && (
         <video
           ref={videoRef}
           src={item.videoUrl}
-          poster={item.thumbnail || item.image}
+          poster={thumbSrc || undefined}
+          crossOrigin="anonymous"
           className={`w-full h-full object-cover transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
           loop
           playsInline
@@ -805,6 +855,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
           preload="metadata"
         />
       )}
+
       <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
         <Badge className="w-fit bg-[#cbb26a]/90 text-white border-0 text-xs">
           {item.category ? formatLabel(item.category) : 'Video'}
