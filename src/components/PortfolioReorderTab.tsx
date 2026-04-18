@@ -81,10 +81,21 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-        // loadeddata fires when first frame is decoded and ready to render
-        const onData = () => setFrameReady(true);
-        video.addEventListener('loadeddata', onData);
-        return () => video.removeEventListener('loadeddata', onData);
+        // Autoplay briefly to get past any black intro frames, pause at 1.5s
+        const onTime = () => {
+            if (video.currentTime >= 1.5) {
+                video.pause();
+                setFrameReady(true);
+            }
+        };
+        // Fallback: if video is shorter than 1.5s, show whatever we have
+        const onEnded = () => setFrameReady(true);
+        video.addEventListener('timeupdate', onTime);
+        video.addEventListener('ended', onEnded);
+        return () => {
+            video.removeEventListener('timeupdate', onTime);
+            video.removeEventListener('ended', onEnded);
+        };
     }, [videoUrl]);
 
     return (
@@ -96,6 +107,7 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 ref={videoRef}
                 src={videoUrl}
                 preload="auto"
+                autoPlay
                 muted
                 playsInline
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${frameReady ? 'opacity-100' : 'opacity-0'}`}
