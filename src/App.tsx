@@ -760,19 +760,13 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
     }
   }, [isVisible, inView]);
 
-  // Seek to 0.5s on metadata load so the video shows a real frame
-  // (instead of black) before playback begins — no canvas/CORS needed
+  // Show video frame as soon as first data is ready — eliminates black screen
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !inView) return;
-    const onMeta = () => { video.currentTime = 0.5; };
-    const onSeeked = () => setHasSeeked(true);
-    video.addEventListener('loadedmetadata', onMeta);
-    video.addEventListener('seeked', onSeeked);
-    return () => {
-      video.removeEventListener('loadedmetadata', onMeta);
-      video.removeEventListener('seeked', onSeeked);
-    };
+    const onData = () => setHasSeeked(true);
+    video.addEventListener('loadeddata', onData);
+    return () => video.removeEventListener('loadeddata', onData);
   }, [inView]);
 
   const formatLabel = (slug: string) =>

@@ -81,14 +81,10 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-        const onMeta = () => { video.currentTime = 0.5; };
-        const onSeeked = () => setFrameReady(true);
-        video.addEventListener('loadedmetadata', onMeta);
-        video.addEventListener('seeked', onSeeked);
-        return () => {
-            video.removeEventListener('loadedmetadata', onMeta);
-            video.removeEventListener('seeked', onSeeked);
-        };
+        // loadeddata fires when first frame is decoded and ready to render
+        const onData = () => setFrameReady(true);
+        video.addEventListener('loadeddata', onData);
+        return () => video.removeEventListener('loadeddata', onData);
     }, [videoUrl]);
 
     return (
@@ -99,7 +95,7 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
             <video
                 ref={videoRef}
                 src={videoUrl}
-                preload="metadata"
+                preload="auto"
                 muted
                 playsInline
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${frameReady ? 'opacity-100' : 'opacity-0'}`}
