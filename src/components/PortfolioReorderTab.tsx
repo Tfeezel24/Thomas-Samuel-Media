@@ -71,35 +71,18 @@ function ConfirmDialog({
     );
 }
 
-// ─── Video Thumbnail Capture ───────────────────────────────────────────────────
-// Renders a hidden video, seeks to 0.5s, captures a JPEG frame via canvas.
-// Falls back to a play-icon placeholder if CORS blocks canvas export.
+// ─── Video Still Frame ─────────────────────────────────────────────────────────
+// Shows a paused video element at frame 0.5s as a still-frame thumbnail.
+// No canvas/CORS needed — the browser renders the frame natively.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [thumb, setThumb] = useState<string | null>(null);
+    const [frameReady, setFrameReady] = useState(false);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-
-        const capture = () => {
-            const canvas = canvasRef.current;
-            if (!canvas || !video) return;
-            canvas.width = video.videoWidth || 320;
-            canvas.height = video.videoHeight || 240;
-            try {
-                canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                if (dataUrl && dataUrl !== 'data:,') setThumb(dataUrl);
-            } catch {
-                // CORS blocked — leave null, show play icon fallback
-            }
-        };
-
         const onMeta = () => { video.currentTime = 0.5; };
-        const onSeeked = () => capture();
-
+        const onSeeked = () => setFrameReady(true);
         video.addEventListener('loadedmetadata', onMeta);
         video.addEventListener('seeked', onSeeked);
         return () => {
@@ -109,22 +92,19 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     }, [videoUrl]);
 
     return (
-        <div className={`relative w-full h-full bg-gradient-to-br from-[#1a1208] to-[#2c1e0d] ${className ?? ''}`}>
-            {/* Hidden elements for frame capture */}
+        <div
+            className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
+            style={{ background: 'linear-gradient(135deg, #1a1208 0%, #2c1e0d 100%)' }}
+        >
             <video
                 ref={videoRef}
                 src={videoUrl}
-                crossOrigin="anonymous"
                 preload="metadata"
                 muted
                 playsInline
-                className="hidden"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${frameReady ? 'opacity-100' : 'opacity-0'}`}
             />
-            <canvas ref={canvasRef} className="hidden" />
-
-            {thumb ? (
-                <img src={thumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            ) : (
+            {!frameReady && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
                         <Video className="w-3.5 h-3.5 text-[#cbb26a]" />
