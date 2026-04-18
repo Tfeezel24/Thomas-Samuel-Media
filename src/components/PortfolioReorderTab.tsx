@@ -71,32 +71,20 @@ function ConfirmDialog({
     );
 }
 
-// ─── Video Still Frame ─────────────────────────────────────────────────────────
-// Seeks directly to 15% into the video (min 2s) then waits for `seeked` to
-// confirm the frame is decoded. No autoPlay — avoids browser throttling.
+// ─── Video Thumbnail (Auto-Playing) ────────────────────────────────────────────
+// Videos autoplay muted + looped so the admin can see dynamic previews.
+// Bandwidth is controlled by compressing source files (see scripts/compress-videos.mjs),
+// not by disabling playback.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [frameReady, setFrameReady] = useState(false);
+    const [ready, setReady] = useState(false);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
-
-        const seekToFrame = () => {
-            // 15% in, but at least 2s to clear black fade-ins, capped at 5s
-            video.currentTime = Math.min(Math.max(video.duration * 0.15, 2), 5);
-        };
-        const onSeeked = () => setFrameReady(true);
-        const onEnded = () => setFrameReady(true);
-
-        video.addEventListener('loadedmetadata', seekToFrame);
-        video.addEventListener('seeked', onSeeked);
-        video.addEventListener('ended', onEnded);
-        return () => {
-            video.removeEventListener('loadedmetadata', seekToFrame);
-            video.removeEventListener('seeked', onSeeked);
-            video.removeEventListener('ended', onEnded);
-        };
+        const onData = () => setReady(true);
+        video.addEventListener('loadeddata', onData);
+        return () => video.removeEventListener('loadeddata', onData);
     }, [videoUrl]);
 
     return (
@@ -108,11 +96,13 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 ref={videoRef}
                 src={videoUrl}
                 preload="auto"
+                autoPlay
+                loop
                 muted
                 playsInline
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${frameReady ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
             />
-            {!frameReady && (
+            {!ready && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
                         <Video className="w-3.5 h-3.5 text-[#cbb26a]" />
