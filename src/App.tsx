@@ -741,6 +741,11 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
     const video = videoRef.current;
     if (!video || !inView) return;
     if (isVisible) {
+      // Upgrade from metadata-only to full download when actually visible
+      if (video.preload !== 'auto') {
+        video.preload = 'auto';
+        video.load();
+      }
       if (video.readyState >= 3) {
         video.play().catch(() => {});
       } else {
@@ -797,7 +802,7 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
           playsInline
           muted
           controls
-          preload="auto"
+          preload="metadata"
         />
       )}
       <div className="absolute top-0 left-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
@@ -814,7 +819,7 @@ const PAGE_SIZE = 24;
 
 function PortfolioSection() {
   const [mainTab, setMainTab] = useState<'photo' | 'video'>('video');
-  const [subFilter, setSubFilter] = useState<string>('all');
+  const [subFilter, setSubFilter] = useState<string>('real-estate');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   // Paginated state — independent of global store
   const [displayedItems, setDisplayedItems] = useState<PortfolioItem[]>([]);
@@ -908,8 +913,8 @@ function PortfolioSection() {
               onClick={() => {
                 const newTab = tab.id as 'photo' | 'video';
                 setMainTab(newTab);
-                // Default to Real Estate when switching to Photos; reset to All for Videos
-                setSubFilter(newTab === 'photo' ? 'real-estate' : 'all');
+                // Always default to Real Estate when switching tabs
+                setSubFilter('real-estate');
               }}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${mainTab === tab.id
                 ? 'bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white shadow-lg scale-105'
@@ -925,18 +930,6 @@ function PortfolioSection() {
         {/* Sub-Filter Tabs */}
         {availableSubCategories.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-10 animate-in fade-in slide-in-from-top-2 duration-500">
-            {/* Show 'All Videos' only for the video tab; no 'All Photos' for the photo tab */}
-            {mainTab === 'video' && (
-              <button
-                onClick={() => setSubFilter('all')}
-                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === 'all'
-                  ? 'bg-[#8f5e25] text-white'
-                  : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
-                  }`}
-              >
-                All Videos
-              </button>
-            )}
             {availableSubCategories.map(cat => (
               <button
                 key={cat}
