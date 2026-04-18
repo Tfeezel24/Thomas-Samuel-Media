@@ -7,7 +7,7 @@
  * Each card also has a delete button that removes the item from Firestore.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -71,6 +71,70 @@ function ConfirmDialog({
     );
 }
 
+// ─── Video Thumbnail Capture ───────────────────────────────────────────────────
+// Renders a hidden video, seeks to 0.5s, captures a JPEG frame via canvas.
+// Falls back to a play-icon placeholder if CORS blocks canvas export.
+function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [thumb, setThumb] = useState<string | null>(null);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const capture = () => {
+            const canvas = canvasRef.current;
+            if (!canvas || !video) return;
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            try {
+                canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                if (dataUrl && dataUrl !== 'data:,') setThumb(dataUrl);
+            } catch {
+                // CORS blocked — leave null, show play icon fallback
+            }
+        };
+
+        const onMeta = () => { video.currentTime = 0.5; };
+        const onSeeked = () => capture();
+
+        video.addEventListener('loadedmetadata', onMeta);
+        video.addEventListener('seeked', onSeeked);
+        return () => {
+            video.removeEventListener('loadedmetadata', onMeta);
+            video.removeEventListener('seeked', onSeeked);
+        };
+    }, [videoUrl]);
+
+    return (
+        <div className={`relative w-full h-full bg-gradient-to-br from-[#1a1208] to-[#2c1e0d] ${className ?? ''}`}>
+            {/* Hidden elements for frame capture */}
+            <video
+                ref={videoRef}
+                src={videoUrl}
+                crossOrigin="anonymous"
+                preload="metadata"
+                muted
+                playsInline
+                className="hidden"
+            />
+            <canvas ref={canvasRef} className="hidden" />
+
+            {thumb ? (
+                <img src={thumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
+                        <Video className="w-3.5 h-3.5 text-[#cbb26a]" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Sortable Card ─────────────────────────────────────────────────────────────
 function SortableCard({
     item,
@@ -119,16 +183,18 @@ function SortableCard({
             </button>
 
             {/* Thumbnail */}
-            <div className="aspect-[4/3] bg-muted overflow-hidden">
+            <div className="aspect-[4/3] overflow-hidden">
                 {thumb ? (
                     <img
                         src={thumb}
                         alt={item.title || item.category}
                         className="w-full h-full object-cover"
-                        loading="lazy"
+                        loading="eager"
                     />
+                ) : item.videoUrl ? (
+                    <VideoThumb videoUrl={item.videoUrl} className="w-full h-full" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-xs">
                         No image
                     </div>
                 )}
