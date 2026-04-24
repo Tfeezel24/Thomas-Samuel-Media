@@ -861,10 +861,20 @@ function PortfolioSection() {
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   // Categories hidden from the Videos tab (photo-only categories)
   const VIDEO_HIDDEN_CATS = new Set(['drone', 'portrait', 'food', 'video']);
+  // Categories hidden from the Photos tab
+  const PHOTO_HIDDEN_CATS = new Set(['video', 'social-media', 'social media', 'social', 'social-content']);
   // Use Firestore categories as sub-filter tabs; hide photo-only categories from the video tab
-  const availableSubCategories = portfolioCategories.filter(c =>
-    mainTab === 'video' ? !VIDEO_HIDDEN_CATS.has(c) : c !== 'video'
+  const filteredSubCategories = portfolioCategories.filter(c =>
+    mainTab === 'video' ? !VIDEO_HIDDEN_CATS.has(c) : !PHOTO_HIDDEN_CATS.has(c)
   );
+  // For photo tab: pin real-estate first, portrait second, rest follows Firestore order
+  const availableSubCategories = mainTab === 'photo'
+    ? [
+        ...filteredSubCategories.filter(c => c === 'real-estate'),
+        ...filteredSubCategories.filter(c => c === 'portrait' || c === 'headshots-and-portraits'),
+        ...filteredSubCategories.filter(c => c !== 'real-estate' && c !== 'portrait' && c !== 'headshots-and-portraits'),
+      ]
+    : filteredSubCategories;
 
   // Load the first page whenever tab or filter changes
   useEffect(() => {
@@ -983,7 +993,7 @@ function PortfolioSection() {
         {/* Gallery */}
         {!initialLoading && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedItems.map((item: PortfolioItem) => (
+            {displayedItems.map((item: PortfolioItem, index: number) => (
               <div
                 key={item.id}
                 className="group relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer bg-black/5"
@@ -1000,7 +1010,8 @@ function PortfolioSection() {
                     <img
                       src={item.image}
                       alt=""
-                      loading="lazy"
+                      loading="eager"
+                      fetchPriority={index < 6 ? 'high' : 'auto'}
                       decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
