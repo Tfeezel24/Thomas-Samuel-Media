@@ -840,6 +840,12 @@ function PortfolioVideo({ item }: { item: PortfolioItem }) {
   );
 }
 
+// Helper: route Firebase Storage images through Vercel's image optimization CDN
+function vercelImg(url: string, width: number, quality = 75): string {
+  if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url;
+  return `/_vercel/image?url=${encodeURIComponent(url)}&w=${width}&q=${quality}`;
+}
+
 // Portfolio Section
 const PAGE_SIZE = 24;
 
@@ -1008,7 +1014,9 @@ function PortfolioSection() {
                 ) : (
                   <>
                     <img
-                      src={item.image}
+                      src={vercelImg(item.image, 800)}
+                      srcSet={`${vercelImg(item.image, 400)} 400w, ${vercelImg(item.image, 800)} 800w, ${vercelImg(item.image, 1200)} 1200w`}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       alt=""
                       loading="eager"
                       fetchPriority={index < 6 ? 'high' : 'auto'}
@@ -1057,7 +1065,7 @@ function PortfolioSection() {
             <X className="w-8 h-8" />
           </button>
           <img
-            src={selectedImage}
+            src={vercelImg(selectedImage, 1200)}
             alt="Expanded view"
             className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl animate-in fade-in zoom-in duration-300"
             onClick={(e) => e.stopPropagation()}

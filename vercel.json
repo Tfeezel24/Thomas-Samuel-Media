@@ -26,5 +26,9 @@
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
-  ]
+  ],
+  "images": {
+    "sizes": [400, 800, 1200],
+    "domains": ["firebasestorage.googleapis.com", "firebasestorage.app"]
+  }
 }
