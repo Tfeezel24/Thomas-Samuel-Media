@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-    GripVertical, Save, Loader2, CheckCircle, ChevronDown, ChevronUp,
+    GripVertical, Loader2, CheckCircle, ChevronDown, ChevronUp,
     Video, Image as ImageIcon, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,6 +129,29 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
     );
 }
 
+// ─── Thumbnail URL helper ───────────────────────────────────────────────────────
+// Returns a small preview version of the URL where the CDN supports it.
+// Falls back to the original for Firebase Storage / unknown CDNs.
+function previewSrc(url: string): string {
+    if (!url) return url;
+    // Unsplash
+    if (url.includes('images.unsplash.com')) {
+        const base = url.split('?')[0];
+        return `${base}?w=300&q=55&auto=format&fit=crop`;
+    }
+    // Cloudinary (insert f_auto,w_300,q_60 after /upload/)
+    if (url.includes('res.cloudinary.com')) {
+        return url.replace('/upload/', '/upload/f_auto,w_300,q_60/');
+    }
+    // imgix
+    if (url.includes('.imgix.net')) {
+        const sep = url.includes('?') ? '&' : '?';
+        return `${url}${sep}w=300&q=60&auto=format`;
+    }
+    // Everything else (Firebase Storage, etc.) — use as-is
+    return url;
+}
+
 // ─── Sortable Card ─────────────────────────────────────────────────────────────
 function SortableCard({
     item,
@@ -138,6 +161,7 @@ function SortableCard({
     onDelete: (item: PortfolioItem) => void;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+    const [imgFailed, setImgFailed] = useState(false);
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -158,7 +182,7 @@ function SortableCard({
             <div
                 {...attributes}
                 {...listeners}
-                className="absolute top-2 left-2 z-10 p-1 rounded bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+                className="absolute top-2 left-2 z-10 p-1 rounded bg-black/50 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
             >
                 <GripVertical className="w-4 h-4 text-white" />
             </div>
@@ -170,20 +194,22 @@ function SortableCard({
                     e.stopPropagation();
                     onDelete(item);
                 }}
-                className="absolute top-2 right-2 z-10 p-1 rounded bg-red-600/80 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 z-10 p-1 rounded bg-red-600/80 hover:bg-red-600 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 title="Delete item"
             >
                 <Trash2 className="w-3.5 h-3.5 text-white" />
             </button>
 
             {/* Thumbnail */}
-            <div className="aspect-[4/3] overflow-hidden">
-                {thumb ? (
+            <div className="aspect-square overflow-hidden">
+                {thumb && !imgFailed ? (
                     <img
-                        src={thumb}
+                        src={previewSrc(thumb)}
                         alt={item.title || item.category}
                         className="w-full h-full object-cover"
-                        loading="eager"
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setImgFailed(true)}
                     />
                 ) : item.videoUrl ? (
                     <VideoThumb videoUrl={item.videoUrl} className="w-full h-full" />
@@ -259,7 +285,7 @@ function CategorySection({
             {!collapsed && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={items.map(i => i.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                             {items.map(item => (
                                 <SortableCard key={item.id} item={item} onDelete={onDelete} />
                             ))}
@@ -287,6 +313,8 @@ export function PortfolioReorderTab({
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [activeType, setActiveType] = useState<'photo' | 'video'>('photo');
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingItemsRef = useRef<PortfolioItem[]>([]);
 
     // Confirm-delete dialog state
     const [pendingDelete, setPendingDelete] = useState<PortfolioItem | null>(null);
@@ -308,15 +336,42 @@ export function PortfolioReorderTab({
     );
     const activeCategories = activeType === 'photo' ? photoCategories : videoCategories;
 
+    const doSave = useCallback(async () => {
+        const items = pendingItemsRef.current;
+        setSaving(true);
+        try {
+            const byCategory: Record<string, PortfolioItem[]> = {};
+            for (const item of items) {
+                if (!byCategory[item.category]) byCategory[item.category] = [];
+                byCategory[item.category].push(item);
+            }
+            const updates: { id: string; sortOrder: number }[] = [];
+            for (const catItems of Object.values(byCategory)) {
+                catItems.forEach((item, idx) => updates.push({ id: item.id, sortOrder: idx }));
+            }
+            await portfolioService.batchUpdateSortOrder(updates);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSaving(false);
+        }
+    }, []);
+
     const handleReorder = useCallback(
         (category: string, newItems: PortfolioItem[]) => {
             setSaved(false);
             setLocalItems(prev => {
                 const others = prev.filter(i => i.category !== category);
-                return [...others, ...newItems];
+                const next = [...others, ...newItems];
+                pendingItemsRef.current = next;
+                if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+                saveTimerRef.current = setTimeout(doSave, 800);
+                return next;
             });
         },
-        [],
+        [doSave],
     );
 
     // Called when user clicks the trash icon on a card
@@ -337,32 +392,6 @@ export function PortfolioReorderTab({
             alert('Failed to delete item. Please try again.');
         } finally {
             setDeleting(false);
-        }
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        setSaved(false);
-        try {
-            const updates: { id: string; sortOrder: number }[] = [];
-            const byCategory: Record<string, PortfolioItem[]> = {};
-            for (const item of localItems) {
-                if (!byCategory[item.category]) byCategory[item.category] = [];
-                byCategory[item.category].push(item);
-            }
-            for (const [, catItems] of Object.entries(byCategory)) {
-                catItems.forEach((item, idx) => {
-                    updates.push({ id: item.id, sortOrder: idx });
-                });
-            }
-            await portfolioService.batchUpdateSortOrder(updates);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
-        } catch (err) {
-            console.error(err);
-            alert('Failed to save order. Please try again.');
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -387,24 +416,22 @@ export function PortfolioReorderTab({
                     <div>
                         <h2 className="text-xl font-bold">Reorder Portfolio</h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Drag and drop items to rearrange. Hover a card to reveal the{' '}
-                            <strong>drag handle</strong> and <strong>delete button</strong>.
-                            Click <strong>Save Order</strong> when done.
+                            Drag and drop to rearrange. Order saves automatically after each move.
                         </p>
                     </div>
-                    <Button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="btn-gold text-white shrink-0"
-                    >
+                    <div className="flex items-center gap-2 text-sm shrink-0 h-9 px-2">
                         {saving ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</>
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <Loader2 className="w-4 h-4 animate-spin" />Saving…
+                            </span>
                         ) : saved ? (
-                            <><CheckCircle className="w-4 h-4 mr-2 text-green-400" />Saved!</>
+                            <span className="flex items-center gap-1.5 text-green-400">
+                                <CheckCircle className="w-4 h-4" />Saved
+                            </span>
                         ) : (
-                            <><Save className="w-4 h-4 mr-2" />Save Order</>
+                            <span className="text-muted-foreground/50 text-xs">Auto-saves on drag</span>
                         )}
-                    </Button>
+                    </div>
                 </div>
 
                 {/* Photo / Video type switcher */}
