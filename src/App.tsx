@@ -1038,13 +1038,26 @@ function PortfolioSection() {
           </div>
         )}
 
-        {/* Infinite scroll sentinel + loading spinner */}
-        <div ref={sentinelRef} className="h-10 mt-8 flex items-center justify-center">
-          {loadingMore && (
-            <div className="flex items-center gap-2 text-[#cbb26a]/60 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading more…
-            </div>
+        {/* Load More button + infinite scroll sentinel */}
+        <div ref={sentinelRef} className="mt-10 flex flex-col items-center gap-4">
+          {hasMore && !initialLoading && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white shadow-lg hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading…
+                </>
+              ) : (
+                'Load More'
+              )}
+            </button>
+          )}
+          {!hasMore && displayedItems.length > 0 && !initialLoading && (
+            <p className="text-sm text-muted-foreground">All photos loaded</p>
           )}
         </div>
       </div>

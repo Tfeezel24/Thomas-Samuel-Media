@@ -536,7 +536,10 @@ export const portfolioService = {
         if (filterCategory && filterCategory !== 'all') {
             qConstraints.push(where("category", "==", filterCategory));
         }
-        qConstraints.push(orderBy("sortOrder", "asc"), limit(FETCH_SIZE));
+        // Over-fetch by 4x so that client-side filtering (video items excluded) still
+        // leaves enough docs to correctly determine hasMore.
+        const PHOTO_FETCH = FETCH_SIZE * 4;
+        qConstraints.push(orderBy("sortOrder", "asc"), limit(PHOTO_FETCH));
         if (cursor) qConstraints.push(startAfter(cursor));
 
         try {
@@ -546,7 +549,7 @@ export const portfolioService = {
             if (filterCategory && filterCategory !== 'all') {
                 fallback.push(where("category", "==", filterCategory));
             }
-            fallback.push(limit(FETCH_SIZE));
+            fallback.push(limit(PHOTO_FETCH));
             if (cursor) fallback.push(startAfter(cursor));
             snap = await getDocs(query(collection(db, "portfolio"), ...fallback));
         }
