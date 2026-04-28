@@ -1451,7 +1451,7 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
           const firestoreServices = (services as any[])
             .filter((s: any) => s.tabCategory === tab.id && getServiceActive(s))
             .sort((a: any, b: any) => {
-              const pos = (s: any) => s.order > 0 ? s.order : s.sortOrder > 0 ? s.sortOrder : 999;
+              const pos = (s: any) => (typeof s.order === 'number' && s.order !== 0) ? s.order : (typeof s.sortOrder === 'number' && s.sortOrder !== 0) ? s.sortOrder : 999;
               const pa = pos(a), pb = pos(b);
               if (pa !== pb) return pa - pb;
               // Tiebreaker 1: price ascending (Basic < Standard < Full Service by cost)
