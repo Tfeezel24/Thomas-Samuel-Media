@@ -1450,7 +1450,18 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
           // Use Firestore services if they exist for this tab, otherwise fall back to hardcoded
           const firestoreServices = (services as any[])
             .filter((s: any) => s.tabCategory === tab.id && getServiceActive(s))
-            .sort((a: any, b: any) => (a.order ?? a.sortOrder ?? 99) - (b.order ?? b.sortOrder ?? 99));
+            .sort((a: any, b: any) => {
+              const pos = (s: any) => s.order > 0 ? s.order : s.sortOrder > 0 ? s.sortOrder : 999;
+              const pa = pos(a), pb = pos(b);
+              if (pa !== pb) return pa - pb;
+              // Tiebreaker: sort by price ascending so Basic < Standard < Full Service
+              const parsePrice = (s: any) => {
+                const raw = s.price || s.displayPrice || '';
+                const n = parseFloat(raw.replace(/[^0-9.]/g, ''));
+                return isNaN(n) ? (s.basePrice || 999999) : n;
+              };
+              return parsePrice(a) - parsePrice(b);
+            });
 
           // Normalize to a common shape: { sectionTitle, pkgs[] }
           // Only use Firestore if it has a COMPLETE replacement set (all packages seeded)
