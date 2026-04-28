@@ -1454,11 +1454,17 @@ function ServicesSection({ setView }: { setView: (v: View) => void }) {
               const pos = (s: any) => s.order > 0 ? s.order : s.sortOrder > 0 ? s.sortOrder : 999;
               const pa = pos(a), pb = pos(b);
               if (pa !== pb) return pa - pb;
-              // Tiebreaker: sort by price ascending so Basic < Standard < Full Service
+              // Tiebreaker 1: price ascending (Basic < Standard < Full Service by cost)
               const parsePrice = (s: any) => {
                 const raw = s.price || s.displayPrice || '';
                 const n = parseFloat(raw.replace(/[^0-9.]/g, ''));
-                return isNaN(n) ? (s.basePrice || 999999) : n;
+                if (!isNaN(n) && n > 0) return n;
+                // Tiebreaker 2: name-based tier order when no price is set
+                const name = (s.name || '').toLowerCase();
+                if (name.includes('basic')) return 10000;
+                if (name.includes('standard')) return 20000;
+                if (name.includes('full')) return 30000;
+                return s.basePrice || 999999;
               };
               return parsePrice(a) - parsePrice(b);
             });
