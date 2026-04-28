@@ -2639,25 +2639,39 @@ function AboutSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const SLIDE_INTERVAL = 3000; // 3 seconds per image
+  const [bio1, setBio1] = useState("I'm a freelance photographer and videographer with 8 years of experience creating high-impact visuals that feel cinematic, intentional, and built to perform. I'm obsessive about the details—lighting, composition, pacing, and polish—because the small choices are what separate \u201cnice content\u201d from a story people actually remember.");
+  const [bio2, setBio2] = useState("My approach blends creative, outside-the-box thinking with clear storytelling narratives designed to convert: capturing what makes your brand different, then translating it into photos and videos that build trust, attention, and action. I take real pride in my work, and I\u2019m excited to partner with new clients to expand their business and grow their social reach.");
+  const [stats, setStats] = useState([
+    { value: '1000+', label: 'Projects' },
+    { value: '8+', label: 'Years' },
+    { value: '98%', label: 'Satisfaction' },
+  ]);
 
-  // Check Firestore for admin-managed image overrides
+  // Load images, bio, and stats from Firestore (admin overrides)
   useEffect(() => {
-    async function fetchBtsImages() {
+    async function fetchAboutConfig() {
       try {
         const { getDoc, doc } = await import('firebase/firestore');
         const { db } = await import('@/lib/firebase');
-        const snap = await getDoc(doc(db, 'siteConfig', 'aboutBtsImages'));
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.images && data.images.length > 0) {
-            setBtsImages(data.images);
-          }
+        const [photoSnap, aboutSnap] = await Promise.all([
+          getDoc(doc(db, 'siteConfig', 'aboutBtsImages')),
+          getDoc(doc(db, 'siteConfig', 'about')),
+        ]);
+        if (photoSnap.exists()) {
+          const data = photoSnap.data();
+          if (data.images && data.images.length > 0) setBtsImages(data.images);
+        }
+        if (aboutSnap.exists()) {
+          const data = aboutSnap.data();
+          if (data.bio1) setBio1(data.bio1);
+          if (data.bio2) setBio2(data.bio2);
+          if (data.stats?.length > 0) setStats(data.stats);
         }
       } catch (err) {
-        console.error('Failed to fetch BTS images:', err);
+        console.error('Failed to fetch about config:', err);
       }
     }
-    fetchBtsImages().finally(() => setBtsLoading(false));
+    fetchAboutConfig().finally(() => setBtsLoading(false));
   }, [portfolioItems]);
 
   // Auto-rotate images every 2 seconds
@@ -2746,25 +2760,15 @@ function AboutSection() {
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Hi, I'm Thomas</h2>
-            <p className="text-muted-foreground mb-4">
-              I'm a freelance photographer and videographer with 8 years of experience creating high-impact visuals that feel cinematic, intentional, and built to perform. I'm obsessive about the details—lighting, composition, pacing, and polish—because the small choices are what separate "nice content" from a story people actually remember.
-            </p>
-            <p className="text-muted-foreground mb-6">
-              My approach blends creative, outside-the-box thinking with clear storytelling narratives designed to convert: capturing what makes your brand different, then translating it into photos and videos that build trust, attention, and action. I take real pride in my work, and I'm excited to partner with new clients to expand their business and grow their social reach.
-            </p>
+            <p className="text-muted-foreground mb-4">{bio1}</p>
+            <p className="text-muted-foreground mb-6">{bio2}</p>
             <div className="flex gap-8">
-              <div>
-                <p className="text-3xl font-bold text-[#8f5e25]">1000+</p>
-                <p className="text-sm text-muted-foreground">Projects</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-[#8f5e25]">8+</p>
-                <p className="text-sm text-muted-foreground">Years</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-[#8f5e25]">98%</p>
-                <p className="text-sm text-muted-foreground">Satisfaction</p>
-              </div>
+              {stats.map((stat, i) => (
+                <div key={i}>
+                  <p className="text-3xl font-bold text-[#8f5e25]">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

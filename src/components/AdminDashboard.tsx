@@ -139,6 +139,7 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                         <TabsTrigger value="admins" className="flex items-center gap-2 data-[state=active]:bg-[#cbb26a] data-[state=active]:text-white">
                             <Shield className="w-4 h-4" />Admins
                         </TabsTrigger>
+                        <TabsTrigger value="about"><User className="w-4 h-4 mr-1" />About</TabsTrigger>
                     </TabsList>
 
                     {/* ═══════ OVERVIEW TAB ═══════ */}
@@ -228,6 +229,11 @@ export function AdminDashboard({ setView }: { setView: (v: View) => void }) {
                     {/* ═══════ ADMIN MANAGEMENT TAB ═══════ */}
                     <TabsContent value="admins">
                         <AdminManagementTab />
+                    </TabsContent>
+
+                    {/* ═══════ ABOUT TAB ═══════ */}
+                    <TabsContent value="about">
+                        <AboutTab />
                     </TabsContent>
                     {/* ═══════ BOOKINGS TAB ═══════ */}
                     <TabsContent value="bookings">
@@ -1368,4 +1374,200 @@ function TestimonialCard({ testimonial, onUpdate, onDelete, onEdit, isPending, i
             </div>
         </div>
     )
+}
+
+// ─── About Tab ────────────────────────────────────────────────
+function AboutTab() {
+    const [photos, setPhotos] = useState<string[]>([]);
+    const [bio1, setBio1] = useState("I'm a freelance photographer and videographer with 8 years of experience creating high-impact visuals that feel cinematic, intentional, and built to perform. I'm obsessive about the details—lighting, composition, pacing, and polish—because the small choices are what separate \"nice content\" from a story people actually remember.");
+    const [bio2, setBio2] = useState("My approach blends creative, outside-the-box thinking with clear storytelling narratives designed to convert: capturing what makes your brand different, then translating it into photos and videos that build trust, attention, and action. I take real pride in my work, and I'm excited to partner with new clients to expand their business and grow their social reach.");
+    const [stats, setStats] = useState([
+        { value: '1000+', label: 'Projects' },
+        { value: '8+', label: 'Years' },
+        { value: '98%', label: 'Satisfaction' },
+    ]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const { getDoc, doc } = await import('firebase/firestore');
+                const { db } = await import('@/lib/firebase');
+                const [photoSnap, aboutSnap] = await Promise.all([
+                    getDoc(doc(db, 'siteConfig', 'aboutBtsImages')),
+                    getDoc(doc(db, 'siteConfig', 'about')),
+                ]);
+                if (photoSnap.exists()) {
+                    const data = photoSnap.data();
+                    if (data.images?.length > 0) setPhotos(data.images);
+                }
+                if (aboutSnap.exists()) {
+                    const data = aboutSnap.data();
+                    if (data.bio1) setBio1(data.bio1);
+                    if (data.bio2) setBio2(data.bio2);
+                    if (data.stats?.length > 0) setStats(data.stats);
+                }
+            } catch (err) {
+                console.error('Failed to load about config:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, []);
+
+    const savePhotosToFirestore = async (list: string[]) => {
+        const { setDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        await setDoc(doc(db, 'siteConfig', 'aboutBtsImages'), { images: list });
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files?.length) return;
+        setUploading(true);
+        try {
+            const newUrls: string[] = [];
+            for (const file of Array.from(files)) {
+                const url = await storageService.uploadFile(file, 'about-photos');
+                newUrls.push(url);
+            }
+            const updated = [...photos, ...newUrls];
+            setPhotos(updated);
+            await savePhotosToFirestore(updated);
+        } catch (err) {
+            console.error(err);
+            alert('Upload failed');
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const removePhoto = async (idx: number) => {
+        const updated = photos.filter((_, i) => i !== idx);
+        setPhotos(updated);
+        await savePhotosToFirestore(updated);
+    };
+
+    const movePhoto = async (idx: number, dir: 'up' | 'down') => {
+        const next = [...photos];
+        const target = dir === 'up' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= next.length) return;
+        [next[idx], next[target]] = [next[target], next[idx]];
+        setPhotos(next);
+        await savePhotosToFirestore(next);
+    };
+
+    const handleSaveBioStats = async () => {
+        setSaving(true);
+        try {
+            const { setDoc, doc } = await import('firebase/firestore');
+            const { db } = await import('@/lib/firebase');
+            await setDoc(doc(db, 'siteConfig', 'about'), { bio1, bio2, stats });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            console.error(err);
+            alert('Save failed');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#cbb26a]" /></div>;
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Photos */}
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <CardTitle>About Page Photos</CardTitle>
+                            <CardDescription>These rotate in the slideshow on the About page (3s per photo). Hover a photo to reorder or remove it.</CardDescription>
+                        </div>
+                        <label className="cursor-pointer">
+                            <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                            <Button asChild disabled={uploading}>
+                                <span>{uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><Plus className="w-4 h-4 mr-2" />Add Photos</>}</span>
+                            </Button>
+                        </label>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {photos.length === 0 ? (
+                        <p className="text-center py-8 text-muted-foreground">No photos yet. Click "Add Photos" to upload.</p>
+                    ) : (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {photos.map((url, idx) => (
+                                <div key={idx} className="relative group rounded-lg overflow-hidden border border-border aspect-[4/3]">
+                                    <img src={url} alt={`About photo ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <Button size="icon" variant="ghost" className="text-white hover:bg-white/20" onClick={() => movePhoto(idx, 'up')} disabled={idx === 0} title="Move up">↑</Button>
+                                        <Button size="icon" variant="ghost" className="text-white hover:bg-white/20" onClick={() => movePhoto(idx, 'down')} disabled={idx === photos.length - 1} title="Move down">↓</Button>
+                                        <Button size="icon" variant="ghost" className="text-red-400 hover:bg-white/20" onClick={() => removePhoto(idx)} title="Remove"><Trash2 className="w-4 h-4" /></Button>
+                                    </div>
+                                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs rounded px-2 py-0.5 font-medium">#{idx + 1}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Bio */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Bio Text</CardTitle>
+                    <CardDescription>The text in the "Hi, I'm Thomas" section</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <Label>Paragraph 1</Label>
+                        <Textarea value={bio1} onChange={e => setBio1(e.target.value)} rows={4} className="mt-1" />
+                    </div>
+                    <div>
+                        <Label>Paragraph 2</Label>
+                        <Textarea value={bio2} onChange={e => setBio2(e.target.value)} rows={4} className="mt-1" />
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Stats */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Stats</CardTitle>
+                    <CardDescription>The numbers displayed below your bio (e.g. 1000+ Projects)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid sm:grid-cols-3 gap-6">
+                        {stats.map((stat, idx) => (
+                            <div key={idx} className="space-y-3">
+                                <div>
+                                    <Label>Value</Label>
+                                    <Input value={stat.value} onChange={e => { const u = [...stats]; u[idx] = { ...u[idx], value: e.target.value }; setStats(u); }} className="mt-1" placeholder="e.g. 1000+" />
+                                </div>
+                                <div>
+                                    <Label>Label</Label>
+                                    <Input value={stat.label} onChange={e => { const u = [...stats]; u[idx] = { ...u[idx], label: e.target.value }; setStats(u); }} className="mt-1" placeholder="e.g. Projects" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+                <Button onClick={handleSaveBioStats} disabled={saving} className="bg-[#cbb26a] hover:bg-[#8f5e25] text-white min-w-[160px]">
+                    {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : saved ? <><Check className="w-4 h-4 mr-2" />Saved!</> : 'Save Bio & Stats'}
+                </Button>
+            </div>
+        </div>
+    );
 }
