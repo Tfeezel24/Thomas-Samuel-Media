@@ -2621,16 +2621,26 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
   );
 }
 
+// Local about page photos — served from public/about-photos/
+const ABOUT_LOCAL_IMAGES = [
+  '/about-photos/about-1.jpg',
+  '/about-photos/about-2.jpg',
+  '/about-photos/about-3.jpg',
+  '/about-photos/about-4.jpg',
+  '/about-photos/about-5.jpg',
+  '/about-photos/about-6.jpg',
+];
+
 // About Section
 function AboutSection() {
   const { portfolioItems } = useStore();
-  const [btsImages, setBtsImages] = useState<string[]>([]);
-  const [btsLoading, setBtsLoading] = useState(true);
+  const [btsImages, setBtsImages] = useState<string[]>(ABOUT_LOCAL_IMAGES);
+  const [btsLoading, setBtsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const SLIDE_INTERVAL = 2000; // 2 seconds per image
+  const SLIDE_INTERVAL = 3000; // 3 seconds per image
 
-  // Fetch BTS images from Firestore, fall back to BTS portfolio images
+  // Check Firestore for admin-managed image overrides
   useEffect(() => {
     async function fetchBtsImages() {
       try {
@@ -2641,18 +2651,10 @@ function AboutSection() {
           const data = snap.data();
           if (data.images && data.images.length > 0) {
             setBtsImages(data.images);
-            return;
           }
         }
       } catch (err) {
         console.error('Failed to fetch BTS images:', err);
-      }
-      // Fallback: use BTS portfolio images if no dedicated about images exist
-      const btsFallback = portfolioItems
-        .filter((item: PortfolioItem) => item.category === 'bts' && item.image)
-        .map((item: PortfolioItem) => item.image);
-      if (btsFallback.length > 0) {
-        setBtsImages(btsFallback);
       }
     }
     fetchBtsImages().finally(() => setBtsLoading(false));
