@@ -2429,12 +2429,6 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                   </div>
                 ))}
                 <Separator className="my-2" />
-                {paymentOption === 'full' && (
-                  <div className="flex justify-between text-green-600 text-sm">
-                    <span>5% Full Payment Discount</span>
-                    <span>-{formatPrice(calculateTotal() * FULL_PAYMENT_DISCOUNT)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
                   <span className="text-[#8f5e25]">{formatPrice(calculateFinalAmount())}</span>
@@ -2473,7 +2467,6 @@ function BookingSection({ setView }: { setView: (v: View) => void }) {
                 >
                   <p className="font-medium">Pay Full Amount</p>
                   <p className="text-2xl font-bold text-[#8f5e25]">{formatPrice(calculateTotal() * (1 - FULL_PAYMENT_DISCOUNT))}</p>
-                  <p className="text-sm text-green-600 font-medium">Save {formatPrice(calculateTotal() * FULL_PAYMENT_DISCOUNT)} (5% off)</p>
                 </button>
               </div>
             </div>
