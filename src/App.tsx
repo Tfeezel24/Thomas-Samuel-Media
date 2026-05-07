@@ -867,8 +867,8 @@ function PortfolioSection() {
     slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   // Categories hidden from the Videos tab (photo-only categories)
   const VIDEO_HIDDEN_CATS = new Set(['drone', 'portrait', 'food', 'video']);
-  // Categories hidden from the Photos tab
-  const PHOTO_HIDDEN_CATS = new Set(['video', 'social-media', 'social media', 'social', 'social-content']);
+  // Categories hidden from the Photos tab (only hide 'video' — social, food, portraits, etc. all show)
+  const PHOTO_HIDDEN_CATS = new Set(['video']);
   // Use Firestore categories as sub-filter tabs; hide photo-only categories from the video tab
   const filteredSubCategories = portfolioCategories.filter(c =>
     mainTab === 'video' ? !VIDEO_HIDDEN_CATS.has(c) : !PHOTO_HIDDEN_CATS.has(c)
