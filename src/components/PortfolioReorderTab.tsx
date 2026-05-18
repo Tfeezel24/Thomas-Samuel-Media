@@ -72,25 +72,26 @@ function ConfirmDialog({
 }
 
 // ─── Video Thumbnail ───────────────────────────────────────────────────────────
-// Shows the thumbnail image immediately (no video seeking needed).
-// Hover plays the video inline so you can identify the clip.
+// Uses the native poster attribute so the thumbnail shows immediately.
+// Falls back to the first video frame (preload="auto", no crossOrigin) for
+// items that have no stored thumbnail. Hover plays the clip inline.
 function VideoThumb({ videoUrl, poster, className }: { videoUrl: string; poster?: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [playing, setPlaying] = useState(false);
 
-    const handleMouseEnter = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        video.currentTime = 0;
-        video.play().catch(() => {/* autoplay blocked */});
+    const onMouseEnter = () => {
+        if (videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(() => {});
+        }
         setPlaying(true);
     };
 
-    const handleMouseLeave = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        video.pause();
-        video.currentTime = 0;
+    const onMouseLeave = () => {
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+        }
         setPlaying(false);
     };
 
@@ -98,30 +99,26 @@ function VideoThumb({ videoUrl, poster, className }: { videoUrl: string; poster?
         <div
             className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
             style={{ background: '#111' }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
         >
-            {/* Poster image — always visible when not playing */}
-            {poster && (
-                <img
-                    src={poster}
-                    alt=""
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${playing ? 'opacity-0' : 'opacity-100'}`}
-                />
-            )}
-
-            {/* Video — loads on demand, shown only while playing */}
+            {/*
+              poster= shows the thumbnail image instantly.
+              preload="auto" (no crossOrigin) loads the first video frame as
+              the fallback for items that have no stored thumbnail URL.
+            */}
             <video
                 ref={videoRef}
                 src={videoUrl}
-                preload="none"
+                poster={poster || undefined}
+                preload="auto"
                 muted
                 playsInline
                 loop
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${playing ? 'opacity-100' : 'opacity-0'}`}
+                className="absolute inset-0 w-full h-full object-cover"
             />
 
-            {/* Play icon shown over the poster */}
+            {/* Play icon overlay — hidden while playing */}
             {!playing && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
