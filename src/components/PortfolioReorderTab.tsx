@@ -72,37 +72,11 @@ function ConfirmDialog({
 }
 
 // ─── Video Thumbnail ───────────────────────────────────────────────────────────
-// Seeks to 1s for a static preview frame. Hover plays the video so you can
-// identify which clip is which. Falls back to frame 0 for short videos.
-function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
+// Shows the thumbnail image immediately (no video seeking needed).
+// Hover plays the video inline so you can identify the clip.
+function VideoThumb({ videoUrl, poster, className }: { videoUrl: string; poster?: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [ready, setReady] = useState(false);
     const [playing, setPlaying] = useState(false);
-
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        const doSeek = () => {
-            const target = Math.min(1.0, Math.max(0, (video.duration || 0) - 0.1));
-            if (Number.isFinite(target) && target > 0) {
-                try { video.currentTime = target; } catch { /* ignore */ }
-            } else {
-                setReady(true);
-            }
-        };
-        const onSeeked = () => setReady(true);
-        const onError = () => setReady(true);
-
-        video.addEventListener('loadedmetadata', doSeek);
-        video.addEventListener('seeked', onSeeked);
-        video.addEventListener('error', onError);
-        return () => {
-            video.removeEventListener('loadedmetadata', doSeek);
-            video.removeEventListener('seeked', onSeeked);
-            video.removeEventListener('error', onError);
-        };
-    }, [videoUrl]);
 
     const handleMouseEnter = () => {
         const video = videoRef.current;
@@ -116,38 +90,39 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
         const video = videoRef.current;
         if (!video) return;
         video.pause();
-        // Seek back to preview frame
-        const target = Math.min(1.0, Math.max(0, (video.duration || 0) - 0.1));
-        try { video.currentTime = target > 0 ? target : 0; } catch { /* ignore */ }
+        video.currentTime = 0;
         setPlaying(false);
     };
 
     return (
         <div
             className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
-            style={{ background: 'linear-gradient(135deg, #1a1208 0%, #2c1e0d 100%)' }}
+            style={{ background: '#111' }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
+            {/* Poster image — always visible when not playing */}
+            {poster && (
+                <img
+                    src={poster}
+                    alt=""
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${playing ? 'opacity-0' : 'opacity-100'}`}
+                />
+            )}
+
+            {/* Video — loads on demand, shown only while playing */}
             <video
                 ref={videoRef}
                 src={videoUrl}
-                preload="auto"
+                preload="none"
                 muted
                 playsInline
                 loop
-                crossOrigin="anonymous"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${playing ? 'opacity-100' : 'opacity-0'}`}
             />
-            {!ready && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
-                        <Video className="w-3.5 h-3.5 text-[#cbb26a]" />
-                    </div>
-                </div>
-            )}
-            {/* Play indicator overlay */}
-            {ready && !playing && (
+
+            {/* Play icon shown over the poster */}
+            {!playing && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
                         <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 16 16">
@@ -231,10 +206,10 @@ function SortableCard({
                 <Trash2 className="w-3.5 h-3.5 text-white" />
             </button>
 
-            {/* Thumbnail — video items always show the video preview */}
+            {/* Thumbnail — video items show poster image + hover-to-play */}
             <div className="aspect-video overflow-hidden">
                 {item.videoUrl ? (
-                    <VideoThumb videoUrl={item.videoUrl} className="w-full h-full" />
+                    <VideoThumb videoUrl={item.videoUrl} poster={thumb || undefined} className="w-full h-full" />
                 ) : thumb && !imgFailed ? (
                     <img
                         src={previewSrc(thumb)}
