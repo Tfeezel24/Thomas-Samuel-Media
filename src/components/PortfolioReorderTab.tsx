@@ -72,18 +72,18 @@ function ConfirmDialog({
 }
 
 // ─── Video Thumbnail ───────────────────────────────────────────────────────────
-// Seeks to 1s to skip past the typical black fade-in intro, then displays
-// that frame as a static thumbnail. Falls back to frame 0 if video is shorter.
+// Seeks to 1s for a static preview frame. Hover plays the video so you can
+// identify which clip is which. Falls back to frame 0 for short videos.
 function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [ready, setReady] = useState(false);
+    const [playing, setPlaying] = useState(false);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
         const doSeek = () => {
-            // Seek past typical fade-in. Use 1s unless the video is shorter.
             const target = Math.min(1.0, Math.max(0, (video.duration || 0) - 0.1));
             if (Number.isFinite(target) && target > 0) {
                 try { video.currentTime = target; } catch { /* ignore */ }
@@ -92,7 +92,7 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
             }
         };
         const onSeeked = () => setReady(true);
-        const onError = () => setReady(true); // show black bg rather than infinite spinner
+        const onError = () => setReady(true);
 
         video.addEventListener('loadedmetadata', doSeek);
         video.addEventListener('seeked', onSeeked);
@@ -104,10 +104,30 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
         };
     }, [videoUrl]);
 
+    const handleMouseEnter = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.currentTime = 0;
+        video.play().catch(() => {/* autoplay blocked */});
+        setPlaying(true);
+    };
+
+    const handleMouseLeave = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.pause();
+        // Seek back to preview frame
+        const target = Math.min(1.0, Math.max(0, (video.duration || 0) - 0.1));
+        try { video.currentTime = target > 0 ? target : 0; } catch { /* ignore */ }
+        setPlaying(false);
+    };
+
     return (
         <div
             className={`relative w-full h-full overflow-hidden ${className ?? ''}`}
             style={{ background: 'linear-gradient(135deg, #1a1208 0%, #2c1e0d 100%)' }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
         >
             <video
                 ref={videoRef}
@@ -115,6 +135,7 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 preload="auto"
                 muted
                 playsInline
+                loop
                 crossOrigin="anonymous"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
             />
@@ -122,6 +143,16 @@ function VideoThumb({ videoUrl, className }: { videoUrl: string; className?: str
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 rounded-full bg-[#cbb26a]/20 border border-[#cbb26a]/40 flex items-center justify-center">
                         <Video className="w-3.5 h-3.5 text-[#cbb26a]" />
+                    </div>
+                </div>
+            )}
+            {/* Play indicator overlay */}
+            {ready && !playing && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M3 2.5v11l10-5.5L3 2.5z" />
+                        </svg>
                     </div>
                 </div>
             )}
@@ -200,9 +231,11 @@ function SortableCard({
                 <Trash2 className="w-3.5 h-3.5 text-white" />
             </button>
 
-            {/* Thumbnail */}
-            <div className="aspect-square overflow-hidden">
-                {thumb && !imgFailed ? (
+            {/* Thumbnail — video items always show the video preview */}
+            <div className="aspect-video overflow-hidden">
+                {item.videoUrl ? (
+                    <VideoThumb videoUrl={item.videoUrl} className="w-full h-full" />
+                ) : thumb && !imgFailed ? (
                     <img
                         src={previewSrc(thumb)}
                         alt={item.title || item.category}
@@ -211,8 +244,6 @@ function SortableCard({
                         decoding="async"
                         onError={() => setImgFailed(true)}
                     />
-                ) : item.videoUrl ? (
-                    <VideoThumb videoUrl={item.videoUrl} className="w-full h-full" />
                 ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-xs">
                         No image
