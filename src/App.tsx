@@ -849,9 +849,30 @@ function vercelImg(url: string, width: number, quality = 75): string {
 // Portfolio Section
 const PAGE_SIZE = 24;
 
+// ─── Portfolio deep-linking (shareable /portfolio/<category> URLs) ────────────
+// Categories that only live under the Photos tab (mirrors VIDEO_HIDDEN_CATS,
+// minus 'video' which is hidden from both). Lets a direct /portfolio/food link
+// open on the correct tab.
+const PORTFOLIO_PHOTO_ONLY_CATS = new Set(['drone', 'portrait', 'food']);
+// Read a /portfolio/<category> deep link from the current URL.
+function parsePortfolioRoute(): { tab: 'photo' | 'video'; category: string } | null {
+  const parts = window.location.pathname.replace(/^\/+/, '').split('/');
+  if ((parts[0] || '').toLowerCase() !== 'portfolio' || !parts[1]) return null;
+  const category = decodeURIComponent(parts[1]).toLowerCase();
+  const tab = PORTFOLIO_PHOTO_ONLY_CATS.has(category) ? 'photo' : 'video';
+  return { tab, category };
+}
+// Build the shareable path for a tab + category. The default view
+// (Videos › Real Estate) keeps the clean /portfolio URL.
+function portfolioPath(tab: 'photo' | 'video', category: string): string {
+  if (tab === 'video' && category === 'real-estate') return '/portfolio';
+  return `/portfolio/${category}`;
+}
+
 function PortfolioSection() {
-  const [mainTab, setMainTab] = useState<'photo' | 'video'>('video');
-  const [subFilter, setSubFilter] = useState<string>('real-estate');
+  const routeFromUrl = parsePortfolioRoute();
+  const [mainTab, setMainTab] = useState<'photo' | 'video'>(routeFromUrl?.tab ?? 'video');
+  const [subFilter, setSubFilter] = useState<string>(routeFromUrl?.category ?? 'real-estate');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   // Paginated state — independent of global store
   const [displayedItems, setDisplayedItems] = useState<PortfolioItem[]>([]);
@@ -881,6 +902,27 @@ function PortfolioSection() {
         ...filteredSubCategories.filter(c => c !== 'real-estate' && c !== 'portrait' && c !== 'headshots-and-portraits'),
       ]
     : filteredSubCategories;
+
+  // Push a shareable URL when the tab/category changes (so links open here).
+  const updatePortfolioUrl = (tab: 'photo' | 'video', category: string) => {
+    const path = portfolioPath(tab, category);
+    if (window.location.pathname !== path) {
+      window.history.pushState({ view: 'portfolio', portfolioCategory: category }, '', path);
+    }
+  };
+
+  // Keep the gallery in sync with browser back/forward between /portfolio/* URLs.
+  useEffect(() => {
+    const onPopState = () => {
+      const parts = window.location.pathname.replace(/^\/+/, '').split('/');
+      if ((parts[0] || '').toLowerCase() !== 'portfolio') return;
+      const route = parsePortfolioRoute();
+      setMainTab(route?.tab ?? 'video');
+      setSubFilter(route?.category ?? 'real-estate');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Load the first page whenever tab or filter changes
   useEffect(() => {
@@ -957,6 +999,7 @@ function PortfolioSection() {
                 setMainTab(newTab);
                 // Always default to Real Estate when switching tabs
                 setSubFilter('real-estate');
+                updatePortfolioUrl(newTab, 'real-estate');
               }}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${mainTab === tab.id
                 ? 'bg-gradient-to-r from-[#8f5e25] to-[#cbb26a] text-white shadow-lg scale-105'
@@ -975,7 +1018,7 @@ function PortfolioSection() {
             {availableSubCategories.map(cat => (
               <button
                 key={cat}
-                onClick={() => setSubFilter(cat)}
+                onClick={() => { setSubFilter(cat); updatePortfolioUrl(mainTab, cat); }}
                 className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${subFilter === cat
                   ? 'bg-[#8f5e25] text-white'
                   : 'bg-[#cbb26a]/10 text-[#8f5e25] hover:bg-[#cbb26a]/20'
@@ -3308,8 +3351,12 @@ function App() {
       setView(view);
     };
     window.addEventListener('popstate', handlePopState);
-    // Replace the initial history entry so it has state too
-    window.history.replaceState({ view: currentView }, '', viewToPath(currentView));
+    // Replace the initial history entry so it has state too. Preserve the full
+    // deep-link path (e.g. /portfolio/food) when it already maps to this view.
+    const initialPath = pathToView(window.location.pathname) === currentView
+      ? window.location.pathname + window.location.search
+      : viewToPath(currentView);
+    window.history.replaceState({ view: currentView }, '', initialPath);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
