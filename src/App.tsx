@@ -849,24 +849,22 @@ function vercelImg(url: string, width: number, quality = 75): string {
 // Portfolio Section
 const PAGE_SIZE = 24;
 
-// ─── Portfolio deep-linking (shareable /portfolio/<category> URLs) ────────────
-// Categories that only live under the Photos tab (mirrors VIDEO_HIDDEN_CATS,
-// minus 'video' which is hidden from both). Lets a direct /portfolio/food link
-// open on the correct tab.
-const PORTFOLIO_PHOTO_ONLY_CATS = new Set(['drone', 'portrait', 'food']);
-// Read a /portfolio/<category> deep link from the current URL.
+// ─── Portfolio deep-linking (shareable per-category URLs) ─────────────────────
+// Video categories live under /videos/<category>, photo categories under
+// /portfolio/<category> (e.g. /videos/real-estate, /portfolio/food). The two
+// prefixes keep shared categories (like Real Estate) unique per tab, so every
+// section has its own direct link.
 function parsePortfolioRoute(): { tab: 'photo' | 'video'; category: string } | null {
   const parts = window.location.pathname.replace(/^\/+/, '').split('/');
-  if ((parts[0] || '').toLowerCase() !== 'portfolio' || !parts[1]) return null;
-  const category = decodeURIComponent(parts[1]).toLowerCase();
-  const tab = PORTFOLIO_PHOTO_ONLY_CATS.has(category) ? 'photo' : 'video';
-  return { tab, category };
+  const root = (parts[0] || '').toLowerCase();
+  const category = parts[1] ? decodeURIComponent(parts[1]).toLowerCase() : '';
+  if (root === 'videos') return { tab: 'video', category: category || 'real-estate' };
+  if (root === 'portfolio' && category) return { tab: 'photo', category };
+  return null; // bare /portfolio → component default (Videos › Real Estate)
 }
-// Build the shareable path for a tab + category. The default view
-// (Videos › Real Estate) keeps the clean /portfolio URL.
+// Build the shareable path for a tab + category.
 function portfolioPath(tab: 'photo' | 'video', category: string): string {
-  if (tab === 'video' && category === 'real-estate') return '/portfolio';
-  return `/portfolio/${category}`;
+  return tab === 'video' ? `/videos/${category}` : `/portfolio/${category}`;
 }
 
 function PortfolioSection() {
@@ -911,11 +909,11 @@ function PortfolioSection() {
     }
   };
 
-  // Keep the gallery in sync with browser back/forward between /portfolio/* URLs.
+  // Keep the gallery in sync with browser back/forward between portfolio URLs.
   useEffect(() => {
     const onPopState = () => {
-      const parts = window.location.pathname.replace(/^\/+/, '').split('/');
-      if ((parts[0] || '').toLowerCase() !== 'portfolio') return;
+      const root = window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
+      if (root !== 'portfolio' && root !== 'videos') return;
       const route = parsePortfolioRoute();
       setMainTab(route?.tab ?? 'video');
       setSubFilter(route?.category ?? 'real-estate');
@@ -3283,6 +3281,7 @@ const validViews: View[] = ['home','portfolio','services','booking','about','con
 function pathToView(pathname: string): View {
   const segment = pathname.replace(/^\//, '').split('/')[0].toLowerCase();
   if (segment === 'packages') return 'services';
+  if (segment === 'videos') return 'portfolio'; // video categories deep-link under /videos/<cat>
   if (segment && validViews.includes(segment as View)) return segment as View;
   return 'home';
 }
